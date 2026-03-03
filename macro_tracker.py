@@ -1,8 +1,10 @@
 import yfinance as yf
 import pandas as pd
+from datetime import datetime, timezone  # Added timezone
 
-from datetime import datetime
-last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+# --- INSERTED HERE ---
+last_updated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+# ---------------------
 
 assets = {
     "Gold": "GC=F",
@@ -14,6 +16,7 @@ rows = []
 
 for name, ticker in assets.items():
     try:
+        # Use yfinance to fetch data
         df = yf.Ticker(ticker).history(period="1y")
 
         if df.empty or len(df) < 200:
@@ -21,7 +24,6 @@ for name, ticker in assets.items():
             continue
 
         close_series = df["Close"]
-
         close = close_series.iloc[-1]
         sma50 = close_series.rolling(50).mean().iloc[-1]
         sma200 = close_series.rolling(200).mean().iloc[-1]
@@ -38,8 +40,8 @@ for name, ticker in assets.items():
     except Exception as e:
         rows.append(f"<tr><td>{name}</td><td>ERROR</td></tr>")
 
+# The variable {last_updated} is now defined and ready for the f-string below
 html = f"""
-
 <!DOCTYPE html>
 <html>
 <head>
