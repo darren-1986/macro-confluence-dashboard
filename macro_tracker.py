@@ -3,35 +3,41 @@ import pandas as pd
 
 assets = {
     "Gold": "GC=F",
-    "S&P 500": "^GSPC",
     "USD Index": "DX-Y.NYB",
-    "Bitcoin": "BTC-USD",
-    "EUR/USD": "EURUSD=X"
+    "AUD/USD": "AUDUSD=X"
 }
 
 rows = []
 
 for name, ticker in assets.items():
-    df = yf.download(ticker, period="1y", interval="1d", progress=False)
+    try:
+        df = yf.download(
+            ticker,
+            period="1y",
+            interval="1d",
+            auto_adjust=True,
+            progress=False
+        )
 
-    if df.empty or len(df) < 200:
-        continue
+        if df.empty or len(df) < 200:
+            rows.append(f"<tr><td>{name}</td><td>NO DATA</td></tr>")
+            continue
 
-    df["SMA50"] = df["Close"].rolling(50).mean()
-    df["SMA200"] = df["Close"].rolling(200).mean()
+        close = float(df["Close"].iloc[-1])
+        sma50 = float(df["Close"].rolling(50).mean().iloc[-1])
+        sma200 = float(df["Close"].rolling(200).mean().iloc[-1])
 
-   close = float(df["Close"].iloc[-1])
-sma50 = float(df["SMA50"].iloc[-1])
-sma200 = float(df["SMA200"].iloc[-1])
+        if close > sma50 and sma50 > sma200:
+            signal = "BUY"
+        elif close < sma50 and sma50 < sma200:
+            signal = "SELL"
+        else:
+            signal = "NEUTRAL"
 
-if close > sma50 and sma50 > sma200:
-        signal = "BUY"
-elif close < sma50 and sma50 < sma200:
-        signal = "SELL"
-    else:
-        signal = "NEUTRAL"
+        rows.append(f"<tr><td>{name}</td><td>{signal}</td></tr>")
 
-    rows.append(f"<tr><td>{name}</td><td>{signal}</td></tr>")
+    except Exception as e:
+        rows.append(f"<tr><td>{name}</td><td>ERROR: {e}</td></tr>")
 
 html = f"""
 <html>
