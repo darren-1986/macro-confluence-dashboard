@@ -1,78 +1,62 @@
-python
 import yfinance as yf
-import pandas as pd
 from datetime import datetime, timezone
 
-# 1. Update the timestamp using modern standards
+# 1. Define timestamp
 last_updated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-assets = {
-    "Gold": "GC=F",
-    "USD Index": "DX-Y.NYB",
-    "AUD/USD": "AUDUSD=X"
-}
-
-# 2. Define your status colors
-colors = {
-    "BUY": "#2e7d32",      # Green
-    "SELL": "#c62828",     # Red
-    "NEUTRAL": "#424242",  # Grey
-    "ERROR": "#b71c1c"
-}
-
-rows = []
+assets = {"Gold": "GC=F", "USD Index": "DX-Y.NYB", "AUD/USD": "AUDUSD=X"}
+rows = ""
 
 for name, ticker in assets.items():
     try:
         df = yf.Ticker(ticker).history(period="1y")
-        if df.empty or len(df) < 200:
-            rows.append(f"<tr><td>{name}</td><td style='background:#333;'>NO DATA</td></tr>")
-            continue
+        
+        # Check if we actually got data
+        if not df.empty and len(df) >= 200:
+            close = df["Close"].iloc[-1]
+            sma50 = df["Close"].rolling(50).mean().iloc[-1]
+            sma200 = df["Close"].rolling(200).mean().iloc[-1]
 
-        close = df["Close"].iloc[-1]
-        sma50 = df["Close"].rolling(50).mean().iloc[-1]
-        sma200 = df["Close"].rolling(200).mean().iloc[-1]
-
-        if close > sma50 and sma50 > sma200:
-            signal = "BUY"
-        elif close < sma50 and sma50 < sma200:
-            signal = "SELL"
+            if close > sma50 and sma50 > sma200:
+                color, signal = "#2e7d32", "BUY"
+            elif close < sma50 and sma50 < sma200:
+                color, signal = "#c62828", "SELL"
+            else:
+                color, signal = "#424242", "NEUTRAL"
         else:
-            signal = "NEUTRAL"
+            color, signal = "#333", "NO DATA"
 
-        bg = colors.get(signal, "#333")
-        rows.append(f"<tr><td>{name}</td><td style='background:{bg}; font-weight:bold;'>{signal}</td></tr>")
+        # Build row string manually to avoid f-string issues
+        rows += f"<tr><td>{name}</td><td style='background:{color}; color:white;'>{signal}</td></tr>"
+    
+    except Exception as e:
+        rows += f"<tr><td>{name}</td><td>ERROR: {str(e)}</td></tr>"
 
-    except Exception:
-        rows.append(f"<tr><td>{name}</td><td style='background:{colors['ERROR']};'>ERROR</td></tr>")
-
-# 3. Create HTML - Note the DOUBLE BRACES {{ }} in the <style> section!
-html = f"""
+# 2. Build HTML using a simple replace method instead of nested f-strings
+html_template = """
 <!DOCTYPE html>
 <html>
 <head>
-<title>Macro Dashboard</title>
-<style>
-    body {{ font-family: Arial; background:#111; color:#eee; text-align:center; }}
-    table {{ border-collapse: collapse; width:50%; margin:auto; }}
-    td, th {{ border:1px solid #555; padding:12px; }}
-    th {{ background:#222; }}
-</style>
+    <style>
+        body { background: #111; color: #eee; font-family: sans-serif; text-align: center; }
+        table { margin: auto; border-collapse: collapse; width: 300px; }
+        td, th { border: 1px solid #444; padding: 10px; }
+    </style>
 </head>
 <body>
-    <h1>Macro Confluence Dashboard</h1>
+    <h1>Macro Dashboard</h1>
     <table>
         <tr><th>Asset</th><th>Signal</th></tr>
-        {''.join(rows)}
+        [ROWS]
     </table>
-    <p style="opacity:0.6; font-size:12px; margin-top:20px;">
-        Last updated: {last_updated}
-    </p>
+    <p>Last updated: [TIME]</p>
 </body>
 </html>
 """
 
-with open("index.html", "w") as f:
-    f.write(html)
+final_html = html_template.replace("[ROWS]", rows).replace("[TIME]", last_updated)
 
-print(f"Success! Dashboard generated at {last_updated}")
+with open("index.html", "w") as f:
+    f.write(final_html)
+
+print("Check index.html now.")
