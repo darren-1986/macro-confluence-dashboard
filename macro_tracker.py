@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 
 from datetime import datetime
+last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
 assets = {
     "Gold": "GC=F",
@@ -38,7 +39,7 @@ for name, ticker in assets.items():
         rows.append(f"<tr><td>{name}</td><td>ERROR</td></tr>")
 
 html = f"""
-last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
 <!DOCTYPE html>
 <html>
 <head>
