@@ -36,3 +36,4 @@ jobs:
           git add index.html
           git commit -m "Update dashboard" || echo "No changes"
           git push
+ 
