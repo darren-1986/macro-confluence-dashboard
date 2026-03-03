@@ -1,6 +1,8 @@
 import yfinance as yf
 import pandas as pd
 
+from datetime import datetime
+
 assets = {
     "Gold": "GC=F",
     "USD Index": "DX-Y.NYB",
@@ -34,7 +36,7 @@ for name, ticker in assets.items():
 
     except Exception as e:
         rows.append(f"<tr><td>{name}</td><td>ERROR</td></tr>")
-
+last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 html = f"""
 <!DOCTYPE html>
 <html>
@@ -53,6 +55,9 @@ th {{ background:#222 }}
 <tr><th>Asset</th><th>Signal</th></tr>
 {''.join(rows)}
 </table>
+<p style="opacity:0.6;font-size:12px;margin-top:20px;">
+Last updated: {last_updated}
+</p>
 </body>
 </html>
 """
