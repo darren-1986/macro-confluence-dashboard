@@ -36,8 +36,9 @@ for name, ticker in assets.items():
 
     except Exception as e:
         rows.append(f"<tr><td>{name}</td><td>ERROR</td></tr>")
-last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+
 html = f"""
+last_updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 <!DOCTYPE html>
 <html>
 <head>
