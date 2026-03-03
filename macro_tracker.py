@@ -23,11 +23,17 @@ for name, ticker in assets.items():
             rows.append(f"<tr><td>{name}</td><td>NO DATA</td></tr>")
             continue
 
-        close_series = df["Close"].squeeze()
+        close_data = df["Close"]
 
-        close = close_series.iloc[-1]
-        sma50 = close_series.rolling(50).mean().iloc[-1]
-        sma200 = close_series.rolling(200).mean().iloc[-1]
+# If yfinance returned a DataFrame, take the first column
+if isinstance(close_data, pd.DataFrame):
+    close_series = close_data.iloc[:, 0]
+else:
+    close_series = close_data
+
+close = close_series.iloc[-1]
+sma50 = close_series.rolling(50).mean().iloc[-1]
+sma200 = close_series.rolling(200).mean().iloc[-1]
 
         if pd.isna(sma50) or pd.isna(sma200):
             rows.append(f"<tr><td>{name}</td><td>NO DATA</td></tr>")
