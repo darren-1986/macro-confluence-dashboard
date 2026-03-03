@@ -23,9 +23,15 @@ for name, ticker in assets.items():
             rows.append(f"<tr><td>{name}</td><td>NO DATA</td></tr>")
             continue
 
-close = float(df["Close"].iloc[-1])
-sma50 = float(df["Close"].rolling(50).mean().iloc[-1])
-sma200 = float(df["Close"].rolling(200).mean().iloc[-1])
+close_series = df["Close"].squeeze()
+
+close = close_series.iloc[-1]
+sma50 = close_series.rolling(50).mean().iloc[-1]
+sma200 = close_series.rolling(200).mean().iloc[-1]
+
+if pd.isna(sma50) or pd.isna(sma200):
+    rows.append(f"<tr><td>{name}</td><td>NO DATA</td></tr>")
+    continue
 
         if close > sma50 and sma50 > sma200:
             signal = "BUY"
