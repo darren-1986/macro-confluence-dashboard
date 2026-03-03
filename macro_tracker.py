@@ -1,10 +1,10 @@
+python
 import yfinance as yf
 import pandas as pd
-from datetime import datetime, timezone  # Added timezone
+from datetime import datetime, timezone
 
-# --- INSERTED HERE ---
+# Get the current timestamp (Python 3.12+ compliant)
 last_updated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-# ---------------------
 
 assets = {
     "Gold": "GC=F",
@@ -12,15 +12,25 @@ assets = {
     "AUD/USD": "AUDUSD=X"
 }
 
+# Define colors for each signal
+colors = {
+    "BUY": "#2e7d32",      # Dark Green
+    "SELL": "#c62828",     # Dark Red
+    "NEUTRAL": "#424242",  # Dark Grey
+    "ERROR": "#b71c1c",
+    "NO DATA": "#37474f"
+}
+
 rows = []
 
 for name, ticker in assets.items():
     try:
-        # Use yfinance to fetch data
         df = yf.Ticker(ticker).history(period="1y")
 
         if df.empty or len(df) < 200:
-            rows.append(f"<tr><td>{name}</td><td>NO DATA</td></tr>")
+            status = "NO DATA"
+            color = colors[status]
+            rows.append(f"<tr><td>{name}</td><td style='background:{color}; font-weight:bold;'>{status}</td></tr>")
             continue
 
         close_series = df["Close"]
@@ -35,22 +45,25 @@ for name, ticker in assets.items():
         else:
             signal = "NEUTRAL"
 
-        rows.append(f"<tr><td>{name}</td><td>{signal}</td></tr>")
+        # Apply color based on the signal
+        bg_color = colors.get(signal, "#333")
+        rows.append(f"<tr><td>{name}</td><td style='background:{bg_color}; font-weight:bold;'>{signal}</td></tr>")
 
     except Exception as e:
-        rows.append(f"<tr><td>{name}</td><td>ERROR</td></tr>")
+        error_color = colors["ERROR"]
+        rows.append(f"<tr><td>{name}</td><td style='background:{error_color};'>ERROR</td></tr>")
 
-# The variable {last_updated} is now defined and ready for the f-string below
 html = f"""
 <!DOCTYPE html>
 <html>
 <head>
 <title>Macro Confluence Dashboard</title>
 <style>
-body {{ font-family: Arial; background:#111; color:#eee }}
-table {{ border-collapse: collapse; width:50% }}
-td, th {{ border:1px solid #555; padding:8px }}
-th {{ background:#222 }}
+body {{ font-family: Arial, sans-serif; background:#111; color:#eee; display: flex; flex-direction: column; align-items: center; padding-top: 50px; }}
+table {{ border-collapse: collapse; width:400px; text-align: center; }}
+td, th {{ border:1px solid #444; padding:12px; }}
+th {{ background:#222; color: #aaa; text-transform: uppercase; font-size: 12px; }}
+h1 {{ margin-bottom: 20px; }}
 </style>
 </head>
 <body>
@@ -69,4 +82,4 @@ Last updated: {last_updated}
 with open("index.html", "w") as f:
     f.write(html)
 
-print("Dashboard generated")
+print(f"Dashboard generated at {last_updated}")
