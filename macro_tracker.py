@@ -20,14 +20,13 @@ for name, ticker in assets.items():
     df["SMA50"] = df["Close"].rolling(50).mean()
     df["SMA200"] = df["Close"].rolling(200).mean()
 
-    last = df.iloc[-1]
-    close = last["Close"]
-    sma50 = last["SMA50"]
-    sma200 = last["SMA200"]
+   close = float(df["Close"].iloc[-1])
+sma50 = float(df["SMA50"].iloc[-1])
+sma200 = float(df["SMA200"].iloc[-1])
 
-    if close > sma50 > sma200:
+if close > sma50 and sma50 > sma200:
         signal = "BUY"
-    elif close < sma50 < sma200:
+elif close < sma50 and sma50 < sma200:
         signal = "SELL"
     else:
         signal = "NEUTRAL"
