@@ -61,6 +61,19 @@ rates_bias = category_bias(data.get("Rates", []))
 inflation_bias = category_bias(data.get("Inflation", []))
 risk_bias = category_bias(data.get("Risk Sentiment", []))
 
+# -----------------------------
+# DETERMINE MACRO REGIME
+# -----------------------------
+if risk_bias == "bull" and rates_bias != "bear":
+    macro_regime = "RISK-ON"
+    regime_class = "bull"
+elif risk_bias == "bear" or rates_bias == "bear":
+    macro_regime = "RISK-OFF"
+    regime_class = "bear"
+else:
+    macro_regime = "TRANSITION"
+    regime_class = "neutral"
+
 bearish_count = [rates_bias, inflation_bias, risk_bias].count("bear")
 
 if bearish_count >= 2:
@@ -72,6 +85,34 @@ elif bearish_count == 1:
 else:
     macro_regime = "RISK-ON"
     regime_class = "bull"
+
+# -----------------------------
+# AUTO-DERIVED ASSET BIAS
+# -----------------------------
+
+# GOLD
+if macro_regime == "RISK-OFF" and (inflation_bias == "bear" or rates_bias == "bear"):
+    gold_bias = "Bullish"
+    gold_class = "bull"
+elif macro_regime == "RISK-ON":
+    gold_bias = "Bearish"
+    gold_class = "bear"
+else:
+    gold_bias = "Neutral"
+    gold_class = "neutral"
+
+# AUD/USD
+growth_bias = category_bias(data.get("Growth", []))
+
+if macro_regime == "RISK-OFF" and risk_bias == "bear" and growth_bias == "bear":
+    aud_bias = "Bearish"
+    aud_class = "bear"
+elif macro_regime == "RISK-ON" and growth_bias == "bull":
+    aud_bias = "Bullish"
+    aud_class = "bull"
+else:
+    aud_bias = "Neutral"
+    aud_class = "neutral"
 
 # -----------------------------
 # TIMESTAMP
