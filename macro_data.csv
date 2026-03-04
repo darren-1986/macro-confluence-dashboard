@@ -13,3 +13,6 @@ Assets,AUD/USD,Bearish
 Inflation,CPI (Headline),Sticky
 Inflation,Core CPI,Elevated
 Inflation,PCE Inflation,Above Target
+Risk Sentiment,VIX,Elevated
+Risk Sentiment,Credit Spreads,Widening
+Risk Sentiment,Financial Conditions,Tightening
