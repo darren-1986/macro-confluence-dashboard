@@ -2,7 +2,7 @@ name: Update Macro Dashboard
 
 on:
   schedule:
-    - cron: "0 */4 * * *"  # every 4 hours
+    - cron: "0 */4 * * *"
   workflow_dispatch:
 
 jobs:
@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0       # FULL git history required for gh-pages deploy
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,7 +31,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: ./                   # deploy root folder (index.html here)
+          folder: dashboard_build
           clean: true
           commit-message: "Auto-update Macro Dashboard"
           token: ${{ secrets.GITHUB_TOKEN }}
