@@ -14,7 +14,7 @@ gold = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
 audusd = yf.Ticker("AUDUSD=X").history(period="1d")['Close'].iloc[-1]
 
 # -----------------------------
-# Macro Data (replace with live scraping later)
+# Macro Data
 # -----------------------------
 macro_data = {
     "Liquidity": {"Fed Balance Sheet": "Neutral", "Reverse Repo": "Falling", "Treasury General Account": "Stable"},
