@@ -122,7 +122,20 @@ td {{
 Last updated: {now}
 </div>
 
+<div class="card">
+    <h2>Data Sources</h2>
+    <ul>
+        <li>Federal Reserve Economic Data (FRED)</li>
+        <li>US Treasury</li>
+        <li>Bureau of Labor Statistics (BLS)</li>
+        <li>Bureau of Economic Analysis (BEA)</li>
+        <li>Institute for Supply Management (ISM)</li>
+        <li>Public central bank releases</li>
+    </ul>
+</div>
+
 </body>
+</html>
 </html>
 """
 
