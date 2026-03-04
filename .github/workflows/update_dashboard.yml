@@ -11,6 +11,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # FULL git history required for gh-pages deploy
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,7 +31,7 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           branch: gh-pages
-          folder: ./
+          folder: ./                   # deploy root folder (index.html here)
           clean: true
           commit-message: "Auto-update Macro Dashboard"
           token: ${{ secrets.GITHUB_TOKEN }}
