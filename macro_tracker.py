@@ -1,22 +1,21 @@
 import os
 import yfinance as yf
-import requests
-from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
+# -----------------------------
+# Ensure build folder exists
+# -----------------------------
 os.makedirs("dashboard_build", exist_ok=True)
 
 # -----------------------------
-# Fetch Live Data
+# Live Asset Prices
 # -----------------------------
-
-# Example: Gold price
 gold = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
-
-# Example: AUD/USD spot
 audusd = yf.Ticker("AUDUSD=X").history(period="1d")['Close'].iloc[-1]
 
-# For demo: we’ll simulate macro indicators
+# -----------------------------
+# Macro Data (replace with live scraping later)
+# -----------------------------
 macro_data = {
     "Liquidity": {"Fed Balance Sheet": "Neutral", "Reverse Repo": "Falling", "Treasury General Account": "Stable"},
     "Rates": {"US 10Y Yield": "Bearish Risk", "Yield Curve": "Inverted", "Policy Rate": "Restrictive"},
@@ -26,46 +25,57 @@ macro_data = {
 }
 
 # -----------------------------
-# Color coding
+# Status → Color
 # -----------------------------
-def status_class(status):
-    s = status.lower()
+def status_class(s):
+    s = s.lower()
     if any(k in s for k in ["bull", "rising", "expansion", "easing", "cooling", "improving"]):
         return "bull"
     if any(k in s for k in ["bear", "falling", "inverted", "restrictive", "contraction", "sticky", "elevated", "high", "stress"]):
         return "bear"
     return "neutral"
 
-# Auto-derived macro regime
-def macro_regime():
-    bear_count = sum([status_class(v)=="bear" for cat in macro_data.values() for v in cat.values()])
-    bull_count = sum([status_class(v)=="bull" for cat in macro_data.values() for v in cat.values()])
-    if bear_count >= 3:
-        return "RISK-OFF","bear"
-    if bull_count >= 3:
-        return "RISK-ON","bull"
-    return "TRANSITION","neutral"
+# -----------------------------
+# Macro Regime
+# -----------------------------
+bear_count = sum([status_class(v)=="bear" for cat in macro_data.values() for v in cat.values()])
+bull_count = sum([status_class(v)=="bull" for cat in macro_data.values() for v in cat.values()])
 
-regime_text, regime_class = macro_regime()
+if bear_count >= 3:
+    macro_regime = "RISK-OFF"
+    regime_class = "bear"
+elif bull_count >= 3:
+    macro_regime = "RISK-ON"
+    regime_class = "bull"
+else:
+    macro_regime = "TRANSITION"
+    regime_class = "neutral"
 
-# Auto-derived assets
-gold_bias = "Bullish" if regime_text=="RISK-OFF" else "Bearish" if regime_text=="RISK-ON" else "Neutral"
+# -----------------------------
+# Assets Bias
+# -----------------------------
+gold_bias = "Bullish" if macro_regime=="RISK-OFF" else "Bearish" if macro_regime=="RISK-ON" else "Neutral"
 gold_class = status_class(gold_bias)
-aud_bias = "Bullish" if regime_text=="RISK-ON" else "Bearish" if regime_text=="RISK-OFF" else "Neutral"
+
+aud_bias = "Bullish" if macro_regime=="RISK-ON" else "Bearish" if macro_regime=="RISK-OFF" else "Neutral"
 aud_class = status_class(aud_bias)
 
 # -----------------------------
-# Build HTML
+# Build sections HTML
+# -----------------------------
+sections_html = ""
+for category, indicators in macro_data.items():
+    rows = "".join([f"<tr><td>{k}</td><td class='{status_class(v)}'>{v}</td></tr>" for k,v in indicators.items()])
+    sections_html += f"<div class='card'><h2>{category}</h2><table>{rows}</table></div>"
+
+# -----------------------------
+# Timestamp
 # -----------------------------
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-sections_html = ""
-for category, indicators in macro_data.items():
-    rows = ""
-    for k,v in indicators.items():
-        rows += f"<tr><td>{k}</td><td class='{status_class(v)}'>{v}</td></tr>"
-    sections_html += f"<div class='card'><h2>{category}</h2><table>{rows}</table></div>"
-
+# -----------------------------
+# Build Final HTML
+# -----------------------------
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -91,7 +101,7 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 
 <div class='card'>
 <h2>Macro Regime</h2>
-<p class='{regime_class}' style='font-size:1.6rem'>{regime_text}</p>
+<p class='{regime_class}' style='font-size:1.6rem'>{macro_regime}</p>
 </div>
 
 {sections_html}
@@ -123,4 +133,5 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
+
 print("Dashboard generated in dashboard_build/")
