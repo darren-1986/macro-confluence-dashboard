@@ -8,10 +8,7 @@ from datetime import datetime, timezone
 def status_class(status: str) -> str:
     s = status.lower()
 
-    bullish_keywords = [
-        "bull", "rising", "expansion", "easing", "cooling", "improving"
-    ]
-
+    bullish_keywords = ["bull", "rising", "expansion", "easing", "cooling", "improving"]
     bearish_keywords = [
         "bear", "falling", "inverted", "restrictive", "contraction",
         "sticky", "elevated", "above target", "widening", "tightening",
@@ -22,14 +19,9 @@ def status_class(status: str) -> str:
         return "bull"
     if any(k in s for k in bearish_keywords):
         return "bear"
-
     return "neutral"
 
 def category_bias(items):
-    """
-    Returns 'bear', 'bull', or 'neutral' for a category
-    based on majority of item classes.
-    """
     counts = {"bear": 0, "bull": 0, "neutral": 0}
     for item in items:
         counts[item["class"]] += 1
@@ -44,7 +36,6 @@ def category_bias(items):
 # LOAD CSV
 # -----------------------------
 data = defaultdict(list)
-
 with open("macro_data.csv", newline="", encoding="utf-8") as f:
     reader = csv.DictReader(f)
     for row in reader:
@@ -53,97 +44,6 @@ with open("macro_data.csv", newline="", encoding="utf-8") as f:
             "status": row["status"],
             "class": status_class(row["status"])
         })
-
-# -----------------------------
-# MACRO REGIME
-# -----------------------------
-rates_bias = category_bias(data.get("Rates", []))
-inflation_bias = category_bias(data.get("Inflation", []))
-risk_bias = category_bias(data.get("Risk Sentiment", []))
-
-# -----------------------------
-# DETERMINE MACRO REGIME
-# -----------------------------
-if risk_bias == "bull" and rates_bias != "bear":
-    macro_regime = "RISK-ON"
-    regime_class = "bull"
-elif risk_bias == "bear" or rates_bias == "bear":
-    macro_regime = "RISK-OFF"
-    regime_class = "bear"
-else:
-    macro_regime = "TRANSITION"
-    regime_class = "neutral"
-
-bearish_count = [rates_bias, inflation_bias, risk_bias].count("bear")
-
-if bearish_count >= 2:
-    macro_regime = "RISK-OFF"
-    regime_class = "bear"
-elif bearish_count == 1:
-    macro_regime = "TRANSITION"
-    regime_class = "neutral"
-else:
-    macro_regime = "RISK-ON"
-    regime_class = "bull"
-
-# -----------------------------
-# AUTO-DERIVED ASSET BIAS
-# -----------------------------
-
-# GOLD
-if macro_regime == "RISK-OFF" and (inflation_bias == "bear" or rates_bias == "bear"):
-    gold_bias = "Bullish"
-    gold_class = "bull"
-elif macro_regime == "RISK-ON":
-    gold_bias = "Bearish"
-    gold_class = "bear"
-else:
-    gold_bias = "Neutral"
-    gold_class = "neutral"
-
-# AUD/USD
-growth_bias = category_bias(data.get("Growth", []))
-
-if macro_regime == "RISK-OFF" and risk_bias == "bear" and growth_bias == "bear":
-    aud_bias = "Bearish"
-    aud_class = "bear"
-elif macro_regime == "RISK-ON" and growth_bias == "bull":
-    aud_bias = "Bullish"
-    aud_class = "bull"
-else:
-    aud_bias = "Neutral"
-    aud_class = "neutral"
-
-# -----------------------------
-# AUTO-DERIVED ASSETS
-# -----------------------------
-
-# GOLD
-if macro_regime == "RISK-OFF" and rates_bias == "bear":
-    gold_bias = "Bullish"
-    gold_class = "bull"
-elif macro_regime == "RISK-ON":
-    gold_bias = "Bearish"
-    gold_class = "bear"
-else:
-    gold_bias = "Neutral"
-    gold_class = "neutral"
-
-# AUD/USD
-if macro_regime == "RISK-OFF" and growth_bias == "bear":
-    aud_bias = "Bearish"
-    aud_class = "bear"
-elif macro_regime == "RISK-ON" and growth_bias == "bull":
-    aud_bias = "Bullish"
-    aud_class = "bull"
-else:
-    aud_bias = "Neutral"
-    aud_class = "neutral"
-
-# -----------------------------
-# TIMESTAMP
-# -----------------------------
-now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 # -----------------------------
 # CATEGORY BIAS
@@ -167,10 +67,39 @@ else:
     regime_class = "neutral"
 
 # -----------------------------
-# BUILD HTML
+# AUTO-DERIVED ASSET BIAS
+# -----------------------------
+# GOLD
+if macro_regime == "RISK-OFF" and (inflation_bias == "bear" or rates_bias == "bear"):
+    gold_bias = "Bullish"
+    gold_class = "bull"
+elif macro_regime == "RISK-ON":
+    gold_bias = "Bearish"
+    gold_class = "bear"
+else:
+    gold_bias = "Neutral"
+    gold_class = "neutral"
+
+# AUD/USD
+if macro_regime == "RISK-OFF" and risk_bias == "bear" and growth_bias == "bear":
+    aud_bias = "Bearish"
+    aud_class = "bear"
+elif macro_regime == "RISK-ON" and growth_bias == "bull":
+    aud_bias = "Bullish"
+    aud_class = "bull"
+else:
+    aud_bias = "Neutral"
+    aud_class = "neutral"
+
+# -----------------------------
+# TIMESTAMP
+# -----------------------------
+now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+# -----------------------------
+# BUILD sections_html
 # -----------------------------
 sections_html = ""
-
 for category, items in data.items():
     rows = ""
     for item in items:
@@ -180,7 +109,6 @@ for category, items in data.items():
             <td class="{item['class']}">{item['status']}</td>
         </tr>
         """
-
     sections_html += f"""
     <div class="card">
         <h2>{category}</h2>
@@ -190,6 +118,9 @@ for category, items in data.items():
     </div>
     """
 
+# -----------------------------
+# BUILD HTML
+# -----------------------------
 html = f"""
 <!DOCTYPE html>
 <html lang="en">
