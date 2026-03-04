@@ -1,8 +1,7 @@
 import os
-import requests
-from bs4 import BeautifulSoup
-import yfinance as yf
 from datetime import datetime, timezone
+import pandas as pd
+import yfinance as yf
 
 # -----------------------------
 # Ensure build folder exists
@@ -10,56 +9,18 @@ from datetime import datetime, timezone
 os.makedirs("dashboard_build", exist_ok=True)
 
 # -----------------------------
-# Live Asset Prices
-# -----------------------------
-gold = yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1]
-audusd = yf.Ticker("AUDUSD=X").history(period="1d")['Close'].iloc[-1]
-
-# -----------------------------
-# Helper function: scrape numeric value from Trading Economics
-# -----------------------------
-def scrape_te(url, fallback="N/A"):
-    try:
-        r = requests.get(url, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
-        value_tag = soup.find("td", class_="datatable-item-value")
-        return value_tag.text.strip() if value_tag else fallback
-    except:
-        return fallback
-
-# -----------------------------
-# Live Macro Indicators
-# -----------------------------
-macro_data = {
-    "Liquidity": {"Fed Balance Sheet": "Neutral", "Reverse Repo": "Falling", "Treasury General Account": "Stable"},
-    "Rates": {"US 10Y Yield": "Bearish Risk", "Yield Curve": "Inverted", "Policy Rate": "Restrictive"},
-    "Growth": {
-        "PMI": scrape_te("https://tradingeconomics.com/united-states/pmis"),
-        "Unemployment": scrape_te("https://tradingeconomics.com/united-states/unemployment-rate")
-    },
-    "Inflation": {
-        "CPI": scrape_te("https://tradingeconomics.com/united-states/consumer-price-index-cpi")
-    },
-    "Risk Sentiment": {
-        "VIX": scrape_te("https://tradingeconomics.com/indices/vix")
-    }
-}
-
-# -----------------------------
-# Status → Color Mapping
+# Helper: Status → Color Map
 # -----------------------------
 def status_class(value):
     try:
-        # attempt numeric thresholds
         num = float(str(value).replace("%",""))
-        if num > 3:        # example threshold
+        if num > 3:   # Example thresholds
             return "bear"
         elif num < 1:
             return "bull"
         else:
             return "neutral"
     except:
-        # fallback to text
         s = str(value).lower()
         if any(k in s for k in ["bull","rising","expansion","easing","cooling","improving"]):
             return "bull"
@@ -68,7 +29,42 @@ def status_class(value):
         return "neutral"
 
 # -----------------------------
-# Macro Regime
+# LIVE ASSETS (Yahoo Finance)
+# -----------------------------
+assets = {
+    "Gold": yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1],
+    "AUD/USD": yf.Ticker("AUDUSD=X").history(period="1d")['Close'].iloc[-1],
+    "US 10Y Yield": yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1] / 100,  # TNX in %
+    "VIX": yf.Ticker("^VIX").history(period="1d")['Close'].iloc[-1]
+}
+
+# -----------------------------
+# LIVE MACRO (FRED CSVs)
+# -----------------------------
+fred_data = {}
+try:
+    cpi = pd.read_csv("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCNS").iloc[-1]["CPIAUCNS"]
+    unemp = pd.read_csv("https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE").iloc[-1]["UNRATE"]
+    fred_data["Inflation"] = {"CPI": cpi}
+    fred_data["Growth"] = {"Unemployment": unemp}
+except Exception as e:
+    print("FRED data fetch failed:", e)
+    fred_data["Inflation"] = {"CPI": "N/A"}
+    fred_data["Growth"] = {"Unemployment": "N/A"}
+
+# -----------------------------
+# COMBINE ALL DATA
+# -----------------------------
+macro_data = {
+    "Liquidity": {"Fed Balance Sheet": "Neutral", "Reverse Repo": "Falling", "Treasury General Account": "Stable"},
+    "Rates": {"US 10Y Yield": assets["US 10Y Yield"]},
+    "Growth": fred_data.get("Growth", {}),
+    "Inflation": fred_data.get("Inflation", {}),
+    "Risk Sentiment": {"VIX": assets["VIX"]}
+}
+
+# -----------------------------
+# MACRO REGIME
 # -----------------------------
 all_classes = [status_class(v) for cat in macro_data.values() for v in cat.values()]
 bear_count = all_classes.count("bear")
@@ -85,7 +81,7 @@ else:
     regime_class = "neutral"
 
 # -----------------------------
-# Asset Biases
+# ASSET BIASES
 # -----------------------------
 gold_bias = "Bullish" if macro_regime=="RISK-OFF" else "Bearish" if macro_regime=="RISK-ON" else "Neutral"
 gold_class = status_class(gold_bias)
@@ -107,7 +103,7 @@ for category, indicators in macro_data.items():
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 # -----------------------------
-# Build Final HTML
+# Build final HTML
 # -----------------------------
 html = f"""
 <!DOCTYPE html>
@@ -142,8 +138,8 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 <div class='card'>
 <h2>Assets</h2>
 <table>
-<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({gold:.2f})</td></tr>
-<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({audusd:.4f})</td></tr>
+<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({assets["Gold"]:.2f})</td></tr>
+<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({assets["AUD/USD"]:.4f})</td></tr>
 </table>
 </div>
 
@@ -152,8 +148,8 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 <div class='card'>
 <h2>Data Sources</h2>
 <ul>
-<li>Yahoo Finance (Gold, AUD/USD)</li>
-<li>Trading Economics (PMI, Unemployment, CPI, VIX)</li>
+<li>Yahoo Finance (Gold, AUD/USD, US 10Y, VIX)</li>
+<li>FRED (CPI, Unemployment)</li>
 <li>Federal Reserve Economic Data (FRED)</li>
 <li>US Treasury</li>
 <li>Bureau of Labor Statistics (BLS)</li>
