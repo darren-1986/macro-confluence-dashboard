@@ -258,7 +258,7 @@ td {{
 {sections_html}
 
 <div class="card">
-    <h2>Assets (Auto-Derived)</h2>
+    <h2>Assets</h2>
     <table>
         <tr>
             <td>Gold</td>
