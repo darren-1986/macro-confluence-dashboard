@@ -28,8 +28,8 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages              # branch where GitHub Pages is served
-          folder: ./                    # root contains index.html
+          branch: gh-pages
+          folder: ./
           clean: true
           commit-message: "Update Macro Dashboard"
           token: ${{ secrets.GITHUB_TOKEN }}
