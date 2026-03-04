@@ -25,6 +25,21 @@ def status_class(status: str) -> str:
 
     return "neutral"
 
+def category_bias(items):
+    """
+    Returns 'bear', 'bull', or 'neutral' for a category
+    based on majority of item classes.
+    """
+    counts = {"bear": 0, "bull": 0, "neutral": 0}
+    for item in items:
+        counts[item["class"]] += 1
+
+    if counts["bear"] >= 2:
+        return "bear"
+    if counts["bull"] >= 2:
+        return "bull"
+    return "neutral"
+
 # -----------------------------
 # LOAD CSV
 # -----------------------------
