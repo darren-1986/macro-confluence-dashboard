@@ -7,12 +7,22 @@ from datetime import datetime, timezone
 # -----------------------------
 def status_class(status: str) -> str:
     s = status.lower()
-    if any(k in s for k in ["bull", "rising", "expansion"]):
+
+    bullish_keywords = [
+        "bull", "rising", "expansion", "easing", "cooling", "improving"
+    ]
+
+    bearish_keywords = [
+        "bear", "falling", "inverted", "restrictive", "contraction",
+        "sticky", "elevated", "above target", "widening", "tightening",
+        "high", "stress"
+    ]
+
+    if any(k in s for k in bullish_keywords):
         return "bull"
-    if any(k in s for k in ["neutral", "stable"]):
-        return "neutral"
-    if any(k in s for k in ["bear", "falling", "inverted", "restrictive", "contraction"]):
+    if any(k in s for k in bearish_keywords):
         return "bear"
+
     return "neutral"
 
 # -----------------------------
