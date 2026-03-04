@@ -33,4 +33,4 @@ jobs:
           clean: true
           commit-message: "Auto-update Macro Dashboard"
           token: ${{ secrets.GITHUB_TOKEN }}
-          force_orphan: true  # ✅ forces branch reset if gh-pages exists
+          force: true
