@@ -14,7 +14,8 @@ os.makedirs("dashboard_build", exist_ok=True)
 def status_class(value):
     try:
         num = float(str(value).replace("%",""))
-        if num > 3:   # Example thresholds
+        # thresholds can be adjusted
+        if num > 3:
             return "bear"
         elif num < 1:
             return "bull"
@@ -31,37 +32,46 @@ def status_class(value):
 # -----------------------------
 # LIVE ASSETS (Yahoo Finance)
 # -----------------------------
-assets = {
-    "Gold": yf.Ticker("GC=F").history(period="1d")['Close'].iloc[-1],
-    "AUD/USD": yf.Ticker("AUDUSD=X").history(period="1d")['Close'].iloc[-1],
-    "US 10Y Yield": yf.Ticker("^TNX").history(period="1d")['Close'].iloc[-1] / 100,  # TNX in %
-    "VIX": yf.Ticker("^VIX").history(period="1d")['Close'].iloc[-1]
-}
+assets = {}
+for symbol,name in [("GC=F","Gold"),("AUDUSD=X","AUD/USD"),("^TNX","US 10Y Yield"),("^VIX","VIX")]:
+    try:
+        assets[name] = yf.Ticker(symbol).history(period="1d")['Close'].iloc[-1]
+    except:
+        assets[name] = "N/A"
+
+# TNX comes in percent, divide by 100
+if assets.get("US 10Y Yield") != "N/A":
+    assets["US 10Y Yield"] = assets["US 10Y Yield"] / 100
 
 # -----------------------------
-# LIVE MACRO (FRED CSVs)
+# LIVE MACRO FROM FRED
 # -----------------------------
-fred_data = {}
-try:
-    cpi = pd.read_csv("https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCNS").iloc[-1]["CPIAUCNS"]
-    unemp = pd.read_csv("https://fred.stlouisfed.org/graph/fredgraph.csv?id=UNRATE").iloc[-1]["UNRATE"]
-    fred_data["Inflation"] = {"CPI": cpi}
-    fred_data["Growth"] = {"Unemployment": unemp}
-except Exception as e:
-    print("FRED data fetch failed:", e)
-    fred_data["Inflation"] = {"CPI": "N/A"}
-    fred_data["Growth"] = {"Unemployment": "N/A"}
-
-# -----------------------------
-# COMBINE ALL DATA
-# -----------------------------
-macro_data = {
-    "Liquidity": {"Fed Balance Sheet": "Neutral", "Reverse Repo": "Falling", "Treasury General Account": "Stable"},
-    "Rates": {"US 10Y Yield": assets["US 10Y Yield"]},
-    "Growth": fred_data.get("Growth", {}),
-    "Inflation": fred_data.get("Inflation", {}),
-    "Risk Sentiment": {"VIX": assets["VIX"]}
+fred_series = {
+    "Inflation": {"CPI": "CPIAUCNS"},
+    "Growth": {"Unemployment": "UNRATE"},
+    "Liquidity": {
+        "Fed Balance Sheet": "WALCL",
+        "Reverse Repo": "RRPONTSYD",
+        "Treasury General Account": "TGA"
+    }
 }
+
+macro_data = {}
+for category, indicators in fred_series.items():
+    macro_data[category] = {}
+    for name, series in indicators.items():
+        try:
+            url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
+            value = pd.read_csv(url).iloc[-1][series]
+            macro_data[category][name] = round(value, 2)
+        except:
+            macro_data[category][name] = "N/A"
+
+# Risk Sentiment (VIX from Yahoo)
+macro_data["Risk Sentiment"] = {"VIX": assets.get("VIX","N/A")}
+
+# Rates (US 10Y Yield from Yahoo)
+macro_data["Rates"] = {"US 10Y Yield": assets.get("US 10Y Yield","N/A")}
 
 # -----------------------------
 # MACRO REGIME
@@ -138,8 +148,8 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 <div class='card'>
 <h2>Assets</h2>
 <table>
-<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({assets["Gold"]:.2f})</td></tr>
-<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({assets["AUD/USD"]:.4f})</td></tr>
+<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({assets.get("Gold","N/A"):.2f})</td></tr>
+<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({assets.get("AUD/USD","N/A"):.4f})</td></tr>
 </table>
 </div>
 
@@ -149,11 +159,9 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 <h2>Data Sources</h2>
 <ul>
 <li>Yahoo Finance (Gold, AUD/USD, US 10Y, VIX)</li>
-<li>FRED (CPI, Unemployment)</li>
-<li>Federal Reserve Economic Data (FRED)</li>
+<li>FRED (CPI, Unemployment, Fed Balance Sheet, Reverse Repo, TGA)</li>
 <li>US Treasury</li>
 <li>Bureau of Labor Statistics (BLS)</li>
-<li>Public central bank releases</li>
 </ul>
 </div>
 
