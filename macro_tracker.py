@@ -4,113 +4,72 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 
 # -----------------------------
-# HELPER FUNCTIONS
+# STATUS → COLOR MAP
 # -----------------------------
-def status_class(value, bull_thresh, bear_thresh):
-    if value is None:
-        return "neutral"
-    if value >= bull_thresh:
+def status_class(status: str) -> str:
+    s = status.lower()
+    bullish_keywords = ["bull", "rising", "expansion", "easing", "cooling", "improving"]
+    bearish_keywords = ["bear", "falling", "inverted", "restrictive", "contraction",
+                        "sticky", "elevated", "above target", "widening", "tightening",
+                        "high", "stress"]
+    if any(k in s for k in bullish_keywords):
         return "bull"
-    elif value <= bear_thresh:
+    if any(k in s for k in bearish_keywords):
         return "bear"
     return "neutral"
 
-def fetch_yf_price(ticker):
-    try:
-        price = yf.Ticker(ticker).history(period="1d")["Close"][-1]
-        return float(price)
-    except:
-        return None
+# -----------------------------
+# LIVE DATA SCRAPING / FETCH
+# -----------------------------
 
-def fetch_cpi():
-    try:
-        url = "https://tradingeconomics.com/united-states/inflation-cpi"
-        r = requests.get(url, headers={"User-Agent":"Mozilla/5.0"})
-        soup = BeautifulSoup(r.text, "html.parser")
-        # Grab first number in page as CPI (simplified)
-        cpi_text = soup.find("div", {"class":"col-xs-6"}).text
-        cpi_value = float(cpi_text.split()[0].replace(",", ""))
-        return cpi_value
-    except:
-        return None
+# 1️⃣ Gold (XAU-USD)
+gold = yf.Ticker("GC=F").history(period="2d")['Close']
+gold_change = (gold[-1] - gold[-2]) / gold[-2] * 100
+gold_status = "Rising" if gold_change > 0 else "Falling" if gold_change < 0 else "Stable"
+gold_class = status_class(gold_status)
 
-def fetch_treasury_10y():
-    try:
-        url = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv"
-        r = requests.get(url)
-        lines = r.text.splitlines()
-        latest = lines[-1].split(",")
-        yield10 = float(latest[7])  # Column 8 = 10Y
-        yield2  = float(latest[3])  # Column 4 = 2Y
-        return yield10, yield2
-    except:
-        return None, None
+# 2️⃣ AUD/USD
+audusd = yf.Ticker("AUDUSD=X").history(period="2d")['Close']
+audusd_change = (audusd[-1] - audusd[-2]) / audusd[-2] * 100
+aud_status = "Rising" if audusd_change > 0 else "Falling" if audusd_change < 0 else "Stable"
+aud_class = status_class(aud_status)
+
+# 3️⃣ Inflation (CPI YoY % from Trading Economics)
+try:
+    cpi_url = "https://tradingeconomics.com/united-states/inflation-cpi"
+    page = requests.get(cpi_url)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    cpi = float(soup.select_one(".table-responsive td[data-key='Value']").text.strip())
+    inflation_status = "Above target" if cpi > 3 else "Below target" if cpi < 2 else "Stable"
+except:
+    inflation_status = "Neutral"
+inflation_class = status_class(inflation_status)
+
+# 4️⃣ Risk Sentiment (VIX index)
+vix = yf.Ticker("^VIX").history(period="2d")['Close']
+vix_change = (vix[-1] - vix[-2]) / vix[-2] * 100
+risk_status = "Bearish Risk" if vix_change > 0 else "Bullish Risk" if vix_change < 0 else "Neutral"
+risk_class = status_class(risk_status)
+
+# 5️⃣ Growth (simple placeholder, can be expanded)
+growth_status = "Expansion"  # Placeholder
+growth_class = status_class(growth_status)
 
 # -----------------------------
-# LIVE DATA
+# DETERMINE MACRO REGIME
 # -----------------------------
-cpi = fetch_cpi()
-yield10, yield2 = fetch_treasury_10y()
-yield_curve = yield10 - yield2 if yield10 and yield2 else None
+bear_count = sum([c == "bear" for c in [gold_class, aud_class, inflation_class, risk_class, growth_class]])
+bull_count = sum([c == "bull" for c in [gold_class, aud_class, inflation_class, risk_class, growth_class]])
 
-audusd = fetch_yf_price("AUDUSD=X")
-gold = fetch_yf_price("GC=F")
-vix = fetch_yf_price("^VIX")
-
-# -----------------------------
-# DASHBOARD DATA
-# -----------------------------
-data = {
-    "Liquidity": [
-        ("Fed Balance Sheet", "Neutral", "neutral"),
-        ("Reverse Repo", "Falling", "bear"),
-        ("Treasury General Account", "Stable", "neutral")
-    ],
-    "Rates": [
-        ("US 10Y Yield", f"{yield10:.2f}" if yield10 else "N/A", status_class(yield10, 3.0, 1.5)),
-        ("Yield Curve", f"{yield_curve:.2f}" if yield_curve else "N/A", status_class(yield_curve, 1.0, 0.0)),
-    ],
-    "Growth": [
-        ("PMI", "N/A", "neutral"),  # optional scrape later
-        ("Unemployment", "N/A", "neutral")
-    ],
-    "Inflation": [
-        ("CPI YoY", f"{cpi:.1f}%" if cpi else "N/A", status_class(cpi, 3, 1.5))
-    ],
-    "Risk Sentiment": [
-        ("VIX", f"{vix:.1f}" if vix else "N/A", status_class(vix, 15, 30))
-    ]
-}
-
-# -----------------------------
-# MACRO REGIME
-# -----------------------------
-rates_bias = max([row[2] for row in data["Rates"]], key=lambda x: ["bear","neutral","bull"].index(x))
-inflation_bias = max([row[2] for row in data["Inflation"]], key=lambda x: ["bear","neutral","bull"].index(x))
-risk_bias = max([row[2] for row in data["Risk Sentiment"]], key=lambda x: ["bear","neutral","bull"].index(x))
-
-if risk_bias == "bear" or rates_bias == "bear":
+if bear_count >= 3:
     macro_regime = "RISK-OFF"
     regime_class = "bear"
-elif risk_bias == "bull":
+elif bull_count >= 3:
     macro_regime = "RISK-ON"
     regime_class = "bull"
 else:
     macro_regime = "TRANSITION"
     regime_class = "neutral"
-
-# -----------------------------
-# AUTO-DERIVED ASSET BIAS
-# -----------------------------
-if macro_regime == "RISK-OFF":
-    gold_bias, gold_class = "Bullish", "bull"
-    aud_bias, aud_class = "Bearish", "bear"
-elif macro_regime == "RISK-ON":
-    gold_bias, gold_class = "Bearish", "bear"
-    aud_bias, aud_class = "Bullish", "bull"
-else:
-    gold_bias, gold_class = "Neutral", "neutral"
-    aud_bias, aud_class = "Neutral", "neutral"
 
 # -----------------------------
 # TIMESTAMP
@@ -120,13 +79,6 @@ now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 # -----------------------------
 # BUILD HTML
 # -----------------------------
-sections_html = ""
-for category, items in data.items():
-    rows = ""
-    for name, val, cls in items:
-        rows += f"<tr><td>{name}</td><td class='{cls}'>{val}</td></tr>\n"
-    sections_html += f"<div class='card'><h2>{category}</h2><table>{rows}</table></div>"
-
 html = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -134,46 +86,123 @@ html = f"""
 <meta charset="UTF-8">
 <title>Macro Confluence Dashboard</title>
 <style>
-body {{ font-family: Arial; background:#0f172a; color:#e5e7eb; padding:40px; }}
-h1 {{ color:#38bdf8; }} h2 {{ color:#7dd3fc; }}
-.card {{ background:#020617; padding:20px; border-radius:8px; margin-bottom:30px; }}
-table {{ width:100%; border-collapse:collapse; }}
-td {{ padding:8px; border-bottom:1px solid #1e293b; }}
-.bull {{ color:#4ade80; font-weight:bold; }}
-.neutral {{ color:#facc15; }}
-.bear {{ color:#f87171; font-weight:bold; }}
-.timestamp {{ margin-top:40px; font-size:0.9rem; color:#94a3b8; }}
+body {{
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    color: #e5e7eb;
+    padding: 40px;
+}}
+h1 {{ color: #38bdf8; }}
+h2 {{ color: #7dd3fc; }}
+
+.card {{
+    background: #020617;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+}}
+
+table {{
+    width: 100%;
+    border-collapse: collapse;
+}}
+
+td {{
+    padding: 8px;
+    border-bottom: 1px solid #1e293b;
+}}
+
+.bull {{
+    color: #4ade80;
+    font-weight: bold;
+}}
+
+.neutral {{
+    color: #facc15;
+}}
+
+.bear {{
+    color: #f87171;
+    font-weight: bold;
+}}
+
+.timestamp {{
+    margin-top: 40px;
+    font-size: 0.9rem;
+    color: #94a3b8;
+}}
 </style>
 </head>
 <body>
+
 <h1>Macro Confluence Dashboard</h1>
 
-<div class='card'><h2>Macro Regime</h2>
-<p class='{regime_class}' style='font-size:1.6rem'>{macro_regime}</p></div>
+<div class="card">
+    <h2>Macro Regime</h2>
+    <p class="{regime_class}" style="font-size: 1.6rem;">
+        {macro_regime}
+    </p>
+</div>
 
-{sections_html}
+<div class="card">
+    <h2>Assets</h2>
+    <table>
+        <tr>
+            <td>Gold</td>
+            <td class="{gold_class}">{gold_status}</td>
+        </tr>
+        <tr>
+            <td>AUD/USD</td>
+            <td class="{aud_class}">{aud_status}</td>
+        </tr>
+    </table>
+</div>
 
-<div class='card'><h2>Assets</h2>
-<table>
-<tr><td>Gold</td><td class='{gold_class}'>{gold_bias}</td></tr>
-<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias}</td></tr>
-</table></div>
+<div class="card">
+    <h2>Inflation & Risk Sentiment</h2>
+    <table>
+        <tr>
+            <td>Inflation</td>
+            <td class="{inflation_class}">{inflation_status}</td>
+        </tr>
+        <tr>
+            <td>VIX / Risk</td>
+            <td class="{risk_class}">{risk_status}</td>
+        </tr>
+    </table>
+</div>
 
-<div class='timestamp'>Last updated: {now}</div>
+<div class="card">
+    <h2>Growth</h2>
+    <table>
+        <tr>
+            <td>Growth Trend</td>
+            <td class="{growth_class}">{growth_status}</td>
+        </tr>
+    </table>
+</div>
 
-<div class='card'><h2>Data Sources</h2>
-<ul>
-<li>Trading Economics (CPI)</li>
-<li>US Treasury (10Y Yield)</li>
-<li>Yahoo Finance (Gold, AUD/USD, VIX)</li>
-<li>Public central bank releases</li>
-</ul></div>
+<div class="timestamp">
+Last updated: {now}
+</div>
+
+<div class="card">
+    <h2>Data Sources</h2>
+    <ul>
+        <li>Yahoo Finance (Gold, AUD/USD, VIX)</li>
+        <li>Trading Economics (US CPI)</li>
+        <li>Public central bank releases</li>
+    </ul>
+</div>
 
 </body>
 </html>
 """
 
+# -----------------------------
+# WRITE TO FILE
+# -----------------------------
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("Live Macro Dashboard generated successfully!")
+print("Dashboard generated with live data")
