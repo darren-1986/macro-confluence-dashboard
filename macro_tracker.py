@@ -21,7 +21,6 @@ def status_class(status: str) -> str:
 # -----------------------------
 # LIVE DATA
 # -----------------------------
-
 # Gold (XAU-USD)
 gold = yf.Ticker("GC=F").history(period="2d")['Close']
 gold_change = (gold[-1] - gold[-2]) / gold[-2] * 100
@@ -34,7 +33,7 @@ audusd_change = (audusd[-1] - audusd[-2]) / audusd[-2] * 100
 aud_status = "Rising" if audusd_change > 0 else "Falling" if audusd_change < 0 else "Stable"
 aud_class = status_class(aud_status)
 
-# Inflation (CPI YoY) via Trading Economics
+# Inflation (CPI YoY)
 try:
     page = requests.get("https://tradingeconomics.com/united-states/inflation-cpi")
     soup = BeautifulSoup(page.content, "html.parser")
@@ -50,8 +49,34 @@ vix_change = (vix[-1] - vix[-2]) / vix[-2] * 100
 risk_status = "Bearish Risk" if vix_change > 0 else "Bullish Risk" if vix_change < 0 else "Neutral"
 risk_class = status_class(risk_status)
 
-# Growth placeholder
-growth_status = "Expansion"  # Can expand with PMI/Unemployment scraping later
+# Growth (PMI + Unemployment)
+try:
+    # PMI
+    pmi_page = requests.get("https://tradingeconomics.com/united-states/pmi")
+    pmi_soup = BeautifulSoup(pmi_page.content, "html.parser")
+    pmi = float(pmi_soup.select_one(".table-responsive td[data-key='Value']").text.strip())
+    pmi_status = "Expansion" if pmi > 50 else "Contraction" if pmi < 50 else "Neutral"
+except:
+    pmi_status = "Neutral"
+
+try:
+    # Unemployment
+    u_page = requests.get("https://tradingeconomics.com/united-states/unemployment-rate")
+    u_soup = BeautifulSoup(u_page.content, "html.parser")
+    u_rate = float(u_soup.select_one(".table-responsive td[data-key='Value']").text.strip())
+    u_status = "Rising" if u_rate > 4.0 else "Falling" if u_rate < 4.0 else "Stable"
+except:
+    u_status = "Neutral"
+
+# Combine Growth indicators
+growth_status_list = [pmi_status, u_status]
+if "Contraction" in growth_status_list or "Falling" in growth_status_list:
+    growth_status = "Contraction"
+elif "Expansion" in growth_status_list or "Rising" in growth_status_list:
+    growth_status = "Expansion"
+else:
+    growth_status = "Neutral"
+
 growth_class = status_class(growth_status)
 
 # -----------------------------
@@ -146,7 +171,9 @@ td {{
 <div class="card">
     <h2>Growth</h2>
     <table>
-        <tr><td>Growth Trend</td><td class="{growth_class}">{growth_status}</td></tr>
+        <tr><td>PMI</td><td class="{growth_class}">{pmi_status}</td></tr>
+        <tr><td>Unemployment</td><td class="{growth_class}">{u_status}</td></tr>
+        <tr><td>Overall Growth</td><td class="{growth_class}">{growth_status}</td></tr>
     </table>
 </div>
 
@@ -156,7 +183,7 @@ td {{
     <h2>Data Sources</h2>
     <ul>
         <li>Yahoo Finance (Gold, AUD/USD, VIX)</li>
-        <li>Trading Economics (US CPI)</li>
+        <li>Trading Economics (US CPI, PMI, Unemployment)</li>
         <li>Public central bank releases</li>
     </ul>
 </div>
@@ -168,4 +195,4 @@ td {{
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard generated with live data")
+print("Dashboard generated with live Growth, PMI & Unemployment")
