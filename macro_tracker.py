@@ -1,48 +1,66 @@
 import os
 from datetime import datetime, timezone
 import yfinance as yf
-from fredapi import Fred
 
 # -----------------------------
-# CONFIG
+# Optional FRED
+# -----------------------------
+try:
+    from fredapi import Fred
+    FRED_AVAILABLE = True
+    FRED_API_KEY = os.environ.get("FRED_API_KEY")
+    if not FRED_API_KEY:
+        print("FRED_API_KEY not set, macro indicators will be N/A")
+        FRED_AVAILABLE = False
+except ImportError:
+    print("fredapi not installed, macro indicators will be N/A")
+    FRED_AVAILABLE = False
+
+# -----------------------------
+# Ensure build folder exists
 # -----------------------------
 os.makedirs("dashboard_build", exist_ok=True)
-FRED_API_KEY = os.environ.get("FRED_API_KEY")  # Must be set in GitHub Actions
 
 # -----------------------------
-# STATUS → COLOR
+# Helper: status_class
 # -----------------------------
 def status_class(value):
     try:
+        # Try numeric
         num = float(str(value).replace("%",""))
         if num > 3: return "bear"
         elif num < 1: return "bull"
         else: return "neutral"
     except:
         s = str(value).lower()
-        if any(k in s for k in ["bull","rising","expansion","easing","cooling","improving"]): return "bull"
-        if any(k in s for k in ["bear","falling","inverted","restrictive","contraction","sticky","elevated","high","stress"]): return "bear"
+        if any(k in s for k in ["bull","rising","expansion","easing","cooling","improving"]):
+            return "bull"
+        if any(k in s for k in ["bear","falling","inverted","restrictive","contraction","sticky","elevated","high","stress"]):
+            return "bear"
         return "neutral"
 
 # -----------------------------
-# ASSETS (Yahoo Finance)
+# Fetch assets (Yahoo Finance)
 # -----------------------------
 assets = {}
 for symbol,name in [("GC=F","Gold"),("AUDUSD=X","AUD/USD"),("^TNX","US 10Y Yield"),("^VIX","VIX")]:
     try:
-        assets[name] = yf.Ticker(symbol).history(period="1d")['Close'].iloc[-1]
+        hist = yf.Ticker(symbol).history(period="1d")
+        assets[name] = hist['Close'].iloc[-1]
         if name=="US 10Y Yield":
             assets[name] /= 100
-    except:
+    except Exception as e:
+        print(f"Failed to fetch {name}: {e}")
         assets[name] = "N/A"
 
 # -----------------------------
-# MACRO DATA (FRED)
+# Fetch macro indicators from FRED
 # -----------------------------
 macro_data = {}
-if FRED_API_KEY:
-    fred = Fred(api_key=FRED_API_KEY)
+
+if FRED_AVAILABLE:
     try:
+        fred = Fred(api_key=FRED_API_KEY)
         macro_data["Inflation"] = {"CPI": round(fred.get_series("CPIAUCNS")[-1],2)}
         macro_data["Growth"] = {"Unemployment": round(fred.get_series("UNRATE")[-1],2)}
         macro_data["Liquidity"] = {
@@ -51,20 +69,21 @@ if FRED_API_KEY:
             "Treasury General Account": round(fred.get_series("TGA")[-1],2)
         }
     except Exception as e:
-        print("FRED fetch failed:", e)
-        macro_data = {}
+        print(f"FRED fetch failed: {e}")
+        macro_data["Inflation"] = {"CPI":"N/A"}
+        macro_data["Growth"] = {"Unemployment":"N/A"}
+        macro_data["Liquidity"] = {"Fed Balance Sheet":"N/A","Reverse Repo":"N/A","Treasury General Account":"N/A"}
 else:
-    print("No FRED API key, skipping macro indicators")
     macro_data["Inflation"] = {"CPI":"N/A"}
     macro_data["Growth"] = {"Unemployment":"N/A"}
     macro_data["Liquidity"] = {"Fed Balance Sheet":"N/A","Reverse Repo":"N/A","Treasury General Account":"N/A"}
 
-# Risk Sentiment and Rates from assets
+# Risk Sentiment & Rates from Yahoo assets
 macro_data["Risk Sentiment"] = {"VIX": assets.get("VIX","N/A")}
 macro_data["Rates"] = {"US 10Y Yield": assets.get("US 10Y Yield","N/A")}
 
 # -----------------------------
-# MACRO REGIME
+# Determine macro regime
 # -----------------------------
 all_classes = [status_class(v) for cat in macro_data.values() for v in cat.values()]
 bear_count = all_classes.count("bear")
@@ -81,7 +100,7 @@ else:
     regime_class = "neutral"
 
 # -----------------------------
-# ASSET BIASES
+# Asset biases
 # -----------------------------
 gold_bias = "Bullish" if macro_regime=="RISK-OFF" else "Bearish" if macro_regime=="RISK-ON" else "Neutral"
 gold_class = status_class(gold_bias)
@@ -90,7 +109,7 @@ aud_bias = "Bullish" if macro_regime=="RISK-ON" else "Bearish" if macro_regime==
 aud_class = status_class(aud_bias)
 
 # -----------------------------
-# BUILD HTML
+# Build HTML sections
 # -----------------------------
 sections_html = ""
 for category, indicators in macro_data.items():
@@ -132,8 +151,8 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 <div class='card'>
 <h2>Assets</h2>
 <table>
-<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({assets.get("Gold","N/A"):.2f})</td></tr>
-<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({assets.get("AUD/USD","N/A"):.4f})</td></tr>
+<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({assets.get("Gold","N/A")})</td></tr>
+<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({assets.get("AUD/USD","N/A")})</td></tr>
 </table>
 </div>
 
@@ -156,4 +175,4 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard generated with live macro data in dashboard_build/index.html")
+print("Dashboard generated successfully in dashboard_build/index.html")
