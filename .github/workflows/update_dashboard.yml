@@ -9,7 +9,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -28,9 +28,8 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages
-          folder: ./                # root contains index.html
+          branch: gh-pages              # branch where GitHub Pages is served
+          folder: ./                    # root contains index.html
           clean: true
-          commit-message: "Update dashboard"
-          target-folder: "/"
+          commit-message: "Update Macro Dashboard"
           token: ${{ secrets.GITHUB_TOKEN }}
