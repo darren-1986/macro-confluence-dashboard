@@ -19,46 +19,58 @@ def status_class(status: str) -> str:
     return "neutral"
 
 # -----------------------------
-# LIVE DATA
+# SAFE YAHOO FINANCE FETCH
 # -----------------------------
-def get_yf_status(ticker_symbol):
+def safe_yf_status(ticker):
     try:
-        data = yf.Ticker(ticker_symbol).history(period="2d")['Close']
+        data = yf.Ticker(ticker).history(period="2d")['Close']
         change = (data[-1] - data[-2]) / data[-2] * 100
         status = "Rising" if change > 0 else "Falling" if change < 0 else "Stable"
         return status, status_class(status)
-    except:
+    except Exception as e:
+        print(f"Warning: Could not fetch {ticker}: {e}")
         return "Neutral", "neutral"
 
-gold_status, gold_class = get_yf_status("GC=F")       # Gold
-aud_status, aud_class = get_yf_status("AUDUSD=X")     # AUD/USD
-vix_status, risk_class = get_yf_status("^VIX")        # Risk Sentiment
-
-# Inflation (US CPI YoY)
-try:
-    page = requests.get("https://tradingeconomics.com/united-states/inflation-cpi")
-    soup = BeautifulSoup(page.content, "html.parser")
-    cpi = float(soup.select_one(".table-responsive td[data-key='Value']").text.strip())
-    inflation_status = "Above target" if cpi > 3 else "Below target" if cpi < 2 else "Stable"
-except:
-    inflation_status = "Neutral"
-inflation_class = status_class(inflation_status)
-
-# Growth (PMI + Unemployment)
-def get_te_value(url):
+# -----------------------------
+# SAFE TRADING ECONOMICS SCRAPE
+# -----------------------------
+def safe_te_value(url):
     try:
-        page = requests.get(url)
+        page = requests.get(url, timeout=10)
         soup = BeautifulSoup(page.content, "html.parser")
         value = float(soup.select_one(".table-responsive td[data-key='Value']").text.strip())
         return value
-    except:
+    except Exception as e:
+        print(f"Warning: Could not fetch {url}: {e}")
         return None
 
-pmi_value = get_te_value("https://tradingeconomics.com/united-states/pmi")
-pmi_status = "Expansion" if pmi_value and pmi_value > 50 else "Contraction" if pmi_value and pmi_value < 50 else "Neutral"
+# -----------------------------
+# LIVE DATA
+# -----------------------------
+gold_status, gold_class = safe_yf_status("GC=F")
+aud_status, aud_class = safe_yf_status("AUDUSD=X")
+vix_status, risk_class = safe_yf_status("^VIX")
 
-u_value = get_te_value("https://tradingeconomics.com/united-states/unemployment-rate")
-u_status = "Rising" if u_value and u_value > 4.0 else "Falling" if u_value and u_value < 4.0 else "Stable"
+# US Inflation CPI YoY
+cpi_value = safe_te_value("https://tradingeconomics.com/united-states/inflation-cpi")
+if cpi_value is None:
+    inflation_status = "Neutral"
+else:
+    inflation_status = "Above target" if cpi_value > 3 else "Below target" if cpi_value < 2 else "Stable"
+inflation_class = status_class(inflation_status)
+
+# Growth: PMI + Unemployment
+pmi_value = safe_te_value("https://tradingeconomics.com/united-states/pmi")
+if pmi_value is None:
+    pmi_status = "Neutral"
+else:
+    pmi_status = "Expansion" if pmi_value > 50 else "Contraction"
+
+u_value = safe_te_value("https://tradingeconomics.com/united-states/unemployment-rate")
+if u_value is None:
+    u_status = "Neutral"
+else:
+    u_status = "Rising" if u_value > 4 else "Falling"
 
 growth_status_list = [pmi_status, u_status]
 if "Contraction" in growth_status_list or "Falling" in growth_status_list:
@@ -154,7 +166,7 @@ td {{
     <h2>Inflation & Risk Sentiment</h2>
     <table>
         <tr><td>Inflation</td><td class="{inflation_class}">{inflation_status}</td></tr>
-        <tr><td>VIX / Risk</td><td class="{risk_class}">{risk_status}</td></tr>
+        <tr><td>VIX / Risk</td><td class="{risk_class}">{vix_status}</td></tr>
     </table>
 </div>
 
@@ -185,4 +197,4 @@ td {{
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard generated with live Growth, PMI & Unemployment")
+print("Dashboard generated successfully")
