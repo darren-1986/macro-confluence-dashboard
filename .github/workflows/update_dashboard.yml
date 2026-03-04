@@ -2,16 +2,14 @@ name: Auto Update Macro Dashboard
 
 on:
   schedule:
-    # Every 4 hours
     - cron: "0 */4 * * *"
-  workflow_dispatch: # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -20,16 +18,17 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install yfinance pandas beautifulsoup4 lxml
+        run: pip install yfinance pandas fredapi
 
       - name: Run Macro Tracker
         run: python macro_tracker.py
 
-      - name: Commit and push updated dashboard
+      - name: Commit & Push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add dashboard_build/index.html
-          git commit -m "Auto-update Macro Dashboard" || echo "No changes to commit"
+          git commit -m "Auto-update Macro Dashboard" || echo "No changes"
           git push
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
