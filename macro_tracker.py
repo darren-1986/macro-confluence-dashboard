@@ -1,76 +1,66 @@
 import os
 from datetime import datetime, timezone
-import pandas as pd
 import yfinance as yf
+from fredapi import Fred
 
 # -----------------------------
-# Ensure build folder exists
+# CONFIG
 # -----------------------------
 os.makedirs("dashboard_build", exist_ok=True)
+FRED_API_KEY = os.environ.get("FRED_API_KEY")  # Must be set in GitHub Actions
 
 # -----------------------------
-# Helper: Status → Color Map
+# STATUS → COLOR
 # -----------------------------
 def status_class(value):
     try:
         num = float(str(value).replace("%",""))
-        # thresholds can be adjusted
-        if num > 3:
-            return "bear"
-        elif num < 1:
-            return "bull"
-        else:
-            return "neutral"
+        if num > 3: return "bear"
+        elif num < 1: return "bull"
+        else: return "neutral"
     except:
         s = str(value).lower()
-        if any(k in s for k in ["bull","rising","expansion","easing","cooling","improving"]):
-            return "bull"
-        if any(k in s for k in ["bear","falling","inverted","restrictive","contraction","sticky","elevated","high","stress"]):
-            return "bear"
+        if any(k in s for k in ["bull","rising","expansion","easing","cooling","improving"]): return "bull"
+        if any(k in s for k in ["bear","falling","inverted","restrictive","contraction","sticky","elevated","high","stress"]): return "bear"
         return "neutral"
 
 # -----------------------------
-# LIVE ASSETS (Yahoo Finance)
+# ASSETS (Yahoo Finance)
 # -----------------------------
 assets = {}
 for symbol,name in [("GC=F","Gold"),("AUDUSD=X","AUD/USD"),("^TNX","US 10Y Yield"),("^VIX","VIX")]:
     try:
         assets[name] = yf.Ticker(symbol).history(period="1d")['Close'].iloc[-1]
+        if name=="US 10Y Yield":
+            assets[name] /= 100
     except:
         assets[name] = "N/A"
 
-# TNX comes in percent, divide by 100
-if assets.get("US 10Y Yield") != "N/A":
-    assets["US 10Y Yield"] = assets["US 10Y Yield"] / 100
-
 # -----------------------------
-# LIVE MACRO FROM FRED
+# MACRO DATA (FRED)
 # -----------------------------
-fred_series = {
-    "Inflation": {"CPI": "CPIAUCNS"},
-    "Growth": {"Unemployment": "UNRATE"},
-    "Liquidity": {
-        "Fed Balance Sheet": "WALCL",
-        "Reverse Repo": "RRPONTSYD",
-        "Treasury General Account": "TGA"
-    }
-}
-
 macro_data = {}
-for category, indicators in fred_series.items():
-    macro_data[category] = {}
-    for name, series in indicators.items():
-        try:
-            url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={series}"
-            value = pd.read_csv(url).iloc[-1][series]
-            macro_data[category][name] = round(value, 2)
-        except:
-            macro_data[category][name] = "N/A"
+if FRED_API_KEY:
+    fred = Fred(api_key=FRED_API_KEY)
+    try:
+        macro_data["Inflation"] = {"CPI": round(fred.get_series("CPIAUCNS")[-1],2)}
+        macro_data["Growth"] = {"Unemployment": round(fred.get_series("UNRATE")[-1],2)}
+        macro_data["Liquidity"] = {
+            "Fed Balance Sheet": round(fred.get_series("WALCL")[-1],2),
+            "Reverse Repo": round(fred.get_series("RRPONTSYD")[-1],2),
+            "Treasury General Account": round(fred.get_series("TGA")[-1],2)
+        }
+    except Exception as e:
+        print("FRED fetch failed:", e)
+        macro_data = {}
+else:
+    print("No FRED API key, skipping macro indicators")
+    macro_data["Inflation"] = {"CPI":"N/A"}
+    macro_data["Growth"] = {"Unemployment":"N/A"}
+    macro_data["Liquidity"] = {"Fed Balance Sheet":"N/A","Reverse Repo":"N/A","Treasury General Account":"N/A"}
 
-# Risk Sentiment (VIX from Yahoo)
+# Risk Sentiment and Rates from assets
 macro_data["Risk Sentiment"] = {"VIX": assets.get("VIX","N/A")}
-
-# Rates (US 10Y Yield from Yahoo)
 macro_data["Rates"] = {"US 10Y Yield": assets.get("US 10Y Yield","N/A")}
 
 # -----------------------------
@@ -100,21 +90,15 @@ aud_bias = "Bullish" if macro_regime=="RISK-ON" else "Bearish" if macro_regime==
 aud_class = status_class(aud_bias)
 
 # -----------------------------
-# Build HTML sections
+# BUILD HTML
 # -----------------------------
 sections_html = ""
 for category, indicators in macro_data.items():
     rows = "".join([f"<tr><td>{k}</td><td class='{status_class(v)}'>{v}</td></tr>" for k,v in indicators.items()])
     sections_html += f"<div class='card'><h2>{category}</h2><table>{rows}</table></div>"
 
-# -----------------------------
-# Timestamp
-# -----------------------------
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-# -----------------------------
-# Build final HTML
-# -----------------------------
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -158,7 +142,7 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 <div class='card'>
 <h2>Data Sources</h2>
 <ul>
-<li>Yahoo Finance (Gold, AUD/USD, US 10Y, VIX)</li>
+<li>Yahoo Finance (Gold, AUD/USD, US 10Y Yield, VIX)</li>
 <li>FRED (CPI, Unemployment, Fed Balance Sheet, Reverse Repo, TGA)</li>
 <li>US Treasury</li>
 <li>Bureau of Labor Statistics (BLS)</li>
