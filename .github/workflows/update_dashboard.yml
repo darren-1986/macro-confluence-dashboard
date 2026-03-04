@@ -1,18 +1,18 @@
 name: Update Macro Dashboard
 
-# Trigger every 4 hours
+# Run every 4 hours, also manually triggerable
 on:
   schedule:
-    - cron: "0 */4 * * *"   # At minute 0 past every 4th hour
-  workflow_dispatch:         # Allows manual trigger
+    - cron: "0 */4 * * *"   # minute 0 of every 4th hour
+  workflow_dispatch:         # allows manual run
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
-      - name: Checkout repository
+      # 1️⃣ Checkout the repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       # 2️⃣ Set up Python
@@ -21,20 +21,20 @@ jobs:
         with:
           python-version: "3.11"
 
-      # 3️⃣ Install dependencies
+      # 3️⃣ Install required Python packages
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install yfinance requests beautifulsoup4 pandas
 
-      # 4️⃣ Run dashboard script
+      # 4️⃣ Run your dashboard Python script
       - name: Generate Macro Dashboard
         run: python macro_dashboard.py
 
-      # 5️⃣ Deploy to GitHub Pages
+      # 5️⃣ Deploy index.html to GitHub Pages
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v6
+        uses: peaceiris/actions-gh-pages@v3   # ✅ v3 exists
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./   # index.html is in repo root
-          publish_branch: gh-pages
+          publish_dir: ./                      # index.html is in repo root
+          publish_branch: gh-pages             # branch will be created automatically
