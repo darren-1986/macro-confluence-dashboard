@@ -5,222 +5,49 @@
 <meta charset="UTF-8">
 <title>Macro Confluence Dashboard</title>
 <style>
-body {
-    font-family: Arial, sans-serif;
-    background: #0f172a;
-    color: #e5e7eb;
-    padding: 40px;
-}
-h1 { color: #38bdf8; }
-h2 { color: #7dd3fc; }
-
-.card {
-    background: #020617;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 30px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-td {
-    padding: 8px;
-    border-bottom: 1px solid #1e293b;
-}
-
-.bull {
-    color: #4ade80;
-    font-weight: bold;
-}
-
-.neutral {
-    color: #facc15;
-}
-
-.bear {
-    color: #f87171;
-    font-weight: bold;
-}
-
-.timestamp {
-    margin-top: 40px;
-    font-size: 0.9rem;
-    color: #94a3b8;
-}
+body { font-family: Arial; background:#0f172a; color:#e5e7eb; padding:40px; }
+h1 { color:#38bdf8; } h2 { color:#7dd3fc; }
+.card { background:#020617; padding:20px; border-radius:8px; margin-bottom:30px; }
+table { width:100%; border-collapse:collapse; }
+td { padding:8px; border-bottom:1px solid #1e293b; }
+.bull { color:#4ade80; font-weight:bold; }
+.neutral { color:#facc15; }
+.bear { color:#f87171; font-weight:bold; }
+.timestamp { margin-top:40px; font-size:0.9rem; color:#94a3b8; }
 </style>
 </head>
 <body>
-
 <h1>Macro Confluence Dashboard</h1>
 
-<div class="card">
-    <h2>Macro Regime</h2>
-    <p class="bear" style="font-size: 1.6rem;">
-        RISK-OFF
-    </p>
-</div>
+<div class='card'><h2>Macro Regime</h2>
+<p class='neutral' style='font-size:1.6rem'>TRANSITION</p></div>
 
+<div class='card'><h2>Liquidity</h2><table><tr><td>Fed Balance Sheet</td><td class='neutral'>Neutral</td></tr>
+<tr><td>Reverse Repo</td><td class='bear'>Falling</td></tr>
+<tr><td>Treasury General Account</td><td class='neutral'>Stable</td></tr>
+</table></div><div class='card'><h2>Rates</h2><table><tr><td>US 10Y Yield</td><td class='neutral'>N/A</td></tr>
+<tr><td>Yield Curve</td><td class='neutral'>N/A</td></tr>
+</table></div><div class='card'><h2>Growth</h2><table><tr><td>PMI</td><td class='neutral'>N/A</td></tr>
+<tr><td>Unemployment</td><td class='neutral'>N/A</td></tr>
+</table></div><div class='card'><h2>Inflation</h2><table><tr><td>CPI YoY</td><td class='neutral'>N/A</td></tr>
+</table></div><div class='card'><h2>Risk Sentiment</h2><table><tr><td>VIX</td><td class='neutral'>N/A</td></tr>
+</table></div>
 
-    <div class="card">
-        <h2>Liquidity</h2>
-        <table>
-            
-        <tr>
-            <td>Fed Balance Sheet</td>
-            <td class="neutral">Neutral</td>
-        </tr>
-        
-        <tr>
-            <td>Reverse Repo</td>
-            <td class="bear">Falling</td>
-        </tr>
-        
-        <tr>
-            <td>Treasury General Account</td>
-            <td class="neutral">Stable</td>
-        </tr>
-        
-        </table>
-    </div>
-    
-    <div class="card">
-        <h2>Rates</h2>
-        <table>
-            
-        <tr>
-            <td>US 10Y Yield</td>
-            <td class="bear">Bearish Risk</td>
-        </tr>
-        
-        <tr>
-            <td>Yield Curve</td>
-            <td class="bear">Inverted</td>
-        </tr>
-        
-        <tr>
-            <td>Policy Rate</td>
-            <td class="bear">Restrictive</td>
-        </tr>
-        
-        </table>
-    </div>
-    
-    <div class="card">
-        <h2>Growth</h2>
-        <table>
-            
-        <tr>
-            <td>PMI</td>
-            <td class="bear">Contraction</td>
-        </tr>
-        
-        <tr>
-            <td>GDP Trend</td>
-            <td class="neutral">Slowing</td>
-        </tr>
-        
-        <tr>
-            <td>Unemployment</td>
-            <td class="bull">Rising</td>
-        </tr>
-        
-        </table>
-    </div>
-    
-    <div class="card">
-        <h2>Assets</h2>
-        <table>
-            
-        <tr>
-            <td>Gold</td>
-            <td class="bull">Bullish</td>
-        </tr>
-        
-        <tr>
-            <td>AUD/USD</td>
-            <td class="bear">Bearish</td>
-        </tr>
-        
-        </table>
-    </div>
-    
-    <div class="card">
-        <h2>Inflation</h2>
-        <table>
-            
-        <tr>
-            <td>CPI (Headline)</td>
-            <td class="bear">Sticky</td>
-        </tr>
-        
-        <tr>
-            <td>Core CPI</td>
-            <td class="bear">Elevated</td>
-        </tr>
-        
-        <tr>
-            <td>PCE Inflation</td>
-            <td class="bear">Above Target</td>
-        </tr>
-        
-        </table>
-    </div>
-    
-    <div class="card">
-        <h2>Risk Sentiment</h2>
-        <table>
-            
-        <tr>
-            <td>VIX</td>
-            <td class="bear">Elevated</td>
-        </tr>
-        
-        <tr>
-            <td>Credit Spreads</td>
-            <td class="bear">Widening</td>
-        </tr>
-        
-        <tr>
-            <td>Financial Conditions</td>
-            <td class="bear">Tightening</td>
-        </tr>
-        
-        </table>
-    </div>
-    
+<div class='card'><h2>Assets</h2>
+<table>
+<tr><td>Gold</td><td class='neutral'>Neutral</td></tr>
+<tr><td>AUD/USD</td><td class='neutral'>Neutral</td></tr>
+</table></div>
 
-<div class="card">
-    <h2>Assets</h2>
-    <table>
-        <tr>
-            <td>Gold</td>
-            <td class="bull">Bullish</td>
-        </tr>
-        <tr>
-            <td>AUD/USD</td>
-            <td class="neutral">Neutral</td>
-        </tr>
-    </table>
-</div>
+<div class='timestamp'>Last updated: 2026-03-04 14:02 UTC</div>
 
-<div class="timestamp">
-Last updated: 2026-03-04 13:37 UTC
-</div>
-
-<div class="card">
-    <h2>Data Sources</h2>
-    <ul>
-        <li>Federal Reserve Economic Data (FRED)</li>
-        <li>US Treasury</li>
-        <li>Bureau of Labor Statistics (BLS)</li>
-        <li>Bureau of Economic Analysis (BEA)</li>
-        <li>Institute for Supply Management (ISM)</li>
-        <li>Public central bank releases</li>
-    </ul>
-</div>
+<div class='card'><h2>Data Sources</h2>
+<ul>
+<li>Trading Economics (CPI)</li>
+<li>US Treasury (10Y Yield)</li>
+<li>Yahoo Finance (Gold, AUD/USD, VIX)</li>
+<li>Public central bank releases</li>
+</ul></div>
 
 </body>
 </html>
