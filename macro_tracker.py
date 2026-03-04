@@ -115,9 +115,56 @@ else:
     aud_class = "neutral"
 
 # -----------------------------
+# AUTO-DERIVED ASSETS
+# -----------------------------
+
+# GOLD
+if macro_regime == "RISK-OFF" and rates_bias == "bear":
+    gold_bias = "Bullish"
+    gold_class = "bull"
+elif macro_regime == "RISK-ON":
+    gold_bias = "Bearish"
+    gold_class = "bear"
+else:
+    gold_bias = "Neutral"
+    gold_class = "neutral"
+
+# AUD/USD
+if macro_regime == "RISK-OFF" and growth_bias == "bear":
+    aud_bias = "Bearish"
+    aud_class = "bear"
+elif macro_regime == "RISK-ON" and growth_bias == "bull":
+    aud_bias = "Bullish"
+    aud_class = "bull"
+else:
+    aud_bias = "Neutral"
+    aud_class = "neutral"
+
+# -----------------------------
 # TIMESTAMP
 # -----------------------------
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+# -----------------------------
+# CATEGORY BIAS
+# -----------------------------
+rates_bias = category_bias(data.get("Rates", []))
+inflation_bias = category_bias(data.get("Inflation", []))
+risk_bias = category_bias(data.get("Risk Sentiment", []))
+growth_bias = category_bias(data.get("Growth", []))
+
+# -----------------------------
+# MACRO REGIME
+# -----------------------------
+if risk_bias == "bear" or rates_bias == "bear":
+    macro_regime = "RISK-OFF"
+    regime_class = "bear"
+elif risk_bias == "bull" and growth_bias == "bull":
+    macro_regime = "RISK-ON"
+    regime_class = "bull"
+else:
+    macro_regime = "TRANSITION"
+    regime_class = "neutral"
 
 # -----------------------------
 # BUILD HTML
@@ -145,16 +192,10 @@ for category, items in data.items():
 
 html = f"""
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Macro Confluence Dashboard</title>
-<div class="card">
-    <h2>Macro Regime</h2>
-    <p class="{regime_class}" style="font-size: 1.6rem;">
-        {macro_regime}
-    </p>
-</div>
 <style>
 body {{
     font-family: Arial, sans-serif;
@@ -207,7 +248,28 @@ td {{
 
 <h1>Macro Confluence Dashboard</h1>
 
+<div class="card">
+    <h2>Macro Regime</h2>
+    <p class="{regime_class}" style="font-size: 1.6rem;">
+        {macro_regime}
+    </p>
+</div>
+
 {sections_html}
+
+<div class="card">
+    <h2>Assets (Auto-Derived)</h2>
+    <table>
+        <tr>
+            <td>Gold</td>
+            <td class="{gold_class}">{gold_bias}</td>
+        </tr>
+        <tr>
+            <td>AUD/USD</td>
+            <td class="{aud_class}">{aud_bias}</td>
+        </tr>
+    </table>
+</div>
 
 <div class="timestamp">
 Last updated: {now}
@@ -226,7 +288,6 @@ Last updated: {now}
 </div>
 
 </body>
-</html>
 </html>
 """
 
