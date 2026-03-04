@@ -3,7 +3,20 @@ from collections import defaultdict
 from datetime import datetime, timezone
 
 # -----------------------------
-# LOAD CSV DATA
+# STATUS → COLOR MAP
+# -----------------------------
+def status_class(status: str) -> str:
+    s = status.lower()
+    if any(k in s for k in ["bull", "rising", "expansion"]):
+        return "bull"
+    if any(k in s for k in ["neutral", "stable"]):
+        return "neutral"
+    if any(k in s for k in ["bear", "falling", "inverted", "restrictive", "contraction"]):
+        return "bear"
+    return "neutral"
+
+# -----------------------------
+# LOAD CSV
 # -----------------------------
 data = defaultdict(list)
 
@@ -12,7 +25,8 @@ with open("macro_data.csv", newline="", encoding="utf-8") as f:
     for row in reader:
         data[row["category"]].append({
             "indicator": row["indicator"],
-            "status": row["status"]
+            "status": row["status"],
+            "class": status_class(row["status"])
         })
 
 # -----------------------------
@@ -31,7 +45,7 @@ for category, items in data.items():
         rows += f"""
         <tr>
             <td>{item['indicator']}</td>
-            <td>{item['status']}</td>
+            <td class="{item['class']}">{item['status']}</td>
         </tr>
         """
 
@@ -58,7 +72,7 @@ body {{
     padding: 40px;
 }}
 h1 {{ color: #38bdf8; }}
-h2 {{ color: #7dd3fc; margin-bottom: 10px; }}
+h2 {{ color: #7dd3fc; }}
 
 .card {{
     background: #020617;
@@ -75,6 +89,20 @@ table {{
 td {{
     padding: 8px;
     border-bottom: 1px solid #1e293b;
+}}
+
+.bull {{
+    color: #4ade80;
+    font-weight: bold;
+}}
+
+.neutral {{
+    color: #facc15;
+}}
+
+.bear {{
+    color: #f87171;
+    font-weight: bold;
 }}
 
 .timestamp {{
@@ -101,4 +129,4 @@ Last updated: {now}
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard generated from CSV")
+print("Dashboard generated with color coding")
