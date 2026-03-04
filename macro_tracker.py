@@ -55,6 +55,25 @@ with open("macro_data.csv", newline="", encoding="utf-8") as f:
         })
 
 # -----------------------------
+# MACRO REGIME
+# -----------------------------
+rates_bias = category_bias(data.get("Rates", []))
+inflation_bias = category_bias(data.get("Inflation", []))
+risk_bias = category_bias(data.get("Risk Sentiment", []))
+
+bearish_count = [rates_bias, inflation_bias, risk_bias].count("bear")
+
+if bearish_count >= 2:
+    macro_regime = "RISK-OFF"
+    regime_class = "bear"
+elif bearish_count == 1:
+    macro_regime = "TRANSITION"
+    regime_class = "neutral"
+else:
+    macro_regime = "RISK-ON"
+    regime_class = "bull"
+
+# -----------------------------
 # TIMESTAMP
 # -----------------------------
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -89,6 +108,12 @@ html = f"""
 <head>
 <meta charset="UTF-8">
 <title>Macro Confluence Dashboard</title>
+<div class="card">
+    <h2>Macro Regime</h2>
+    <p class="{regime_class}" style="font-size: 1.6rem;">
+        {macro_regime}
+    </p>
+</div>
 <style>
 body {{
     font-family: Arial, sans-serif;
