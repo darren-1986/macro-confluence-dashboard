@@ -21,19 +21,20 @@ def status_class(status: str) -> str:
 # -----------------------------
 # LIVE DATA
 # -----------------------------
-# Gold (XAU-USD)
-gold = yf.Ticker("GC=F").history(period="2d")['Close']
-gold_change = (gold[-1] - gold[-2]) / gold[-2] * 100
-gold_status = "Rising" if gold_change > 0 else "Falling" if gold_change < 0 else "Stable"
-gold_class = status_class(gold_status)
+def get_yf_status(ticker_symbol):
+    try:
+        data = yf.Ticker(ticker_symbol).history(period="2d")['Close']
+        change = (data[-1] - data[-2]) / data[-2] * 100
+        status = "Rising" if change > 0 else "Falling" if change < 0 else "Stable"
+        return status, status_class(status)
+    except:
+        return "Neutral", "neutral"
 
-# AUD/USD
-audusd = yf.Ticker("AUDUSD=X").history(period="2d")['Close']
-audusd_change = (audusd[-1] - audusd[-2]) / audusd[-2] * 100
-aud_status = "Rising" if audusd_change > 0 else "Falling" if audusd_change < 0 else "Stable"
-aud_class = status_class(aud_status)
+gold_status, gold_class = get_yf_status("GC=F")       # Gold
+aud_status, aud_class = get_yf_status("AUDUSD=X")     # AUD/USD
+vix_status, risk_class = get_yf_status("^VIX")        # Risk Sentiment
 
-# Inflation (CPI YoY)
+# Inflation (US CPI YoY)
 try:
     page = requests.get("https://tradingeconomics.com/united-states/inflation-cpi")
     soup = BeautifulSoup(page.content, "html.parser")
@@ -43,32 +44,22 @@ except:
     inflation_status = "Neutral"
 inflation_class = status_class(inflation_status)
 
-# Risk Sentiment (VIX)
-vix = yf.Ticker("^VIX").history(period="2d")['Close']
-vix_change = (vix[-1] - vix[-2]) / vix[-2] * 100
-risk_status = "Bearish Risk" if vix_change > 0 else "Bullish Risk" if vix_change < 0 else "Neutral"
-risk_class = status_class(risk_status)
-
 # Growth (PMI + Unemployment)
-try:
-    # PMI
-    pmi_page = requests.get("https://tradingeconomics.com/united-states/pmi")
-    pmi_soup = BeautifulSoup(pmi_page.content, "html.parser")
-    pmi = float(pmi_soup.select_one(".table-responsive td[data-key='Value']").text.strip())
-    pmi_status = "Expansion" if pmi > 50 else "Contraction" if pmi < 50 else "Neutral"
-except:
-    pmi_status = "Neutral"
+def get_te_value(url):
+    try:
+        page = requests.get(url)
+        soup = BeautifulSoup(page.content, "html.parser")
+        value = float(soup.select_one(".table-responsive td[data-key='Value']").text.strip())
+        return value
+    except:
+        return None
 
-try:
-    # Unemployment
-    u_page = requests.get("https://tradingeconomics.com/united-states/unemployment-rate")
-    u_soup = BeautifulSoup(u_page.content, "html.parser")
-    u_rate = float(u_soup.select_one(".table-responsive td[data-key='Value']").text.strip())
-    u_status = "Rising" if u_rate > 4.0 else "Falling" if u_rate < 4.0 else "Stable"
-except:
-    u_status = "Neutral"
+pmi_value = get_te_value("https://tradingeconomics.com/united-states/pmi")
+pmi_status = "Expansion" if pmi_value and pmi_value > 50 else "Contraction" if pmi_value and pmi_value < 50 else "Neutral"
 
-# Combine Growth indicators
+u_value = get_te_value("https://tradingeconomics.com/united-states/unemployment-rate")
+u_status = "Rising" if u_value and u_value > 4.0 else "Falling" if u_value and u_value < 4.0 else "Stable"
+
 growth_status_list = [pmi_status, u_status]
 if "Contraction" in growth_status_list or "Falling" in growth_status_list:
     growth_status = "Contraction"
@@ -76,7 +67,6 @@ elif "Expansion" in growth_status_list or "Rising" in growth_status_list:
     growth_status = "Expansion"
 else:
     growth_status = "Neutral"
-
 growth_class = status_class(growth_status)
 
 # -----------------------------
