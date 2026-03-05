@@ -1,6 +1,6 @@
 name: Auto Update Macro Dashboard
 
-# Trigger workflow every 4 hours and allow manual trigger
+# Trigger workflow every 4 hours, and allow manual trigger
 on:
   schedule:
     - cron: "0 */4 * * *"  # every 4 hours
@@ -12,7 +12,7 @@ jobs:
 
     steps:
       # 1️⃣ Checkout the repo
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       # 2️⃣ Set up Python
@@ -26,15 +26,23 @@ jobs:
         run: |
           pip install yfinance pandas matplotlib
 
-      # 4️⃣ Run the macro tracker script
+      # 4️⃣ Run the Macro Tracker script
       - name: Run Macro Tracker
         run: python macro_tracker.py
 
-      # 5️⃣ Commit and push updated dashboard
+      # 5️⃣ Commit & Push updated dashboard safely
       - name: Commit & Push Dashboard
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Add file
           git add dashboard_build/index.html
-          git commit -m "Auto-update Macro Dashboard" || echo "No changes to commit"
-          git push
+
+          # Commit only if changes exist
+          if ! git diff --cached --quiet; then
+              git commit -m "Auto-update Macro Dashboard"
+              git push
+          else
+              echo "No changes to commit"
+          fi
