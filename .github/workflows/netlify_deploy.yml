@@ -14,7 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Debug: show repo structure
+      # 2️⃣ Debug repo
       - name: Debug repo structure
         run: |
           echo "Current directory:"
@@ -32,25 +32,25 @@ jobs:
       - name: Install dependencies
         run: pip install yfinance pandas
 
-      # 5️⃣ Run Macro Tracker with error logging
+      # 5️⃣ Run Macro Tracker
       - name: Run Macro Tracker
         run: |
           echo "Running macro_tracker.py..."
           python3 macro_tracker.py || python macro_tracker.py || { echo '❌ Python script failed!'; exit 1; }
 
-      # 6️⃣ Debug: check dashboard_build folder
+      # 6️⃣ Debug: verify dashboard_build folder
       - name: Verify dashboard_build
         run: |
           echo "Checking dashboard_build contents..."
           ls -R dashboard_build || { echo '❌ dashboard_build missing!'; exit 1; }
 
-      # 7️⃣ Deploy to Netlify (only if dashboard exists)
+      # 7️⃣ Deploy to Netlify v2
       - name: Deploy to Netlify
         if: ${{ success() }}
-        uses: nwtgck/actions-netlify@v1.2.0
+        uses: nwtgck/actions-netlify@v2
         with:
           publish-dir: dashboard_build
           production-branch: main
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          netlify-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           site-id: ${{ secrets.NETLIFY_SITE_ID }}
