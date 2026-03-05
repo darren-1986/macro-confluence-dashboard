@@ -1,39 +1,37 @@
 name: Auto Update Macro Dashboard
 
+# Trigger workflow every 4 hours and allow manual trigger
 on:
   schedule:
-    - cron: "0 */4 * * *"   # every 4 hours
-  workflow_dispatch:          # allows manual trigger
+    - cron: "0 */4 * * *"  # every 4 hours
+  workflow_dispatch:
 
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo
-      - name: Checkout repository
+      # 1️⃣ Checkout the repo
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Python
+      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       # 3️⃣ Install dependencies
-      - name: Install Python dependencies
+      - name: Install dependencies
         run: |
-          pip install yfinance pandas
-          pip install fredapi || echo "fredapi not installed, skipping"
+          pip install yfinance pandas matplotlib
 
-      # 4️⃣ Run macro tracker script
+      # 4️⃣ Run the macro tracker script
       - name: Run Macro Tracker
         run: python macro_tracker.py
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
 
-      # 5️⃣ Commit & push updated dashboard
-      - name: Commit & push updated dashboard
+      # 5️⃣ Commit and push updated dashboard
+      - name: Commit & Push Dashboard
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
