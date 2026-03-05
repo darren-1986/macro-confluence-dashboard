@@ -2,7 +2,7 @@ name: Auto Update Macro Dashboard
 
 on:
   schedule:
-    - cron: "0 */4 * * *" # every 4 hours
+    - cron: "0 */4 * * *"  # every 4 hours
   workflow_dispatch:
 
 jobs:
@@ -10,24 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: pip install yfinance pandas
 
+      # 4️⃣ Generate dashboard
       - name: Run Macro Tracker
         run: python3 macro_tracker.py || python macro_tracker.py
 
+      # 5️⃣ Deploy to Netlify
       - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v1.2.0
         with:
-          publish-dir: dashboard_build
+          publish-dir: dashboard_build        # folder with index.html
           production-branch: main
           github-token: ${{ secrets.GITHUB_TOKEN }}
           netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
