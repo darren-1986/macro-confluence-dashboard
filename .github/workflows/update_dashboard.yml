@@ -10,13 +10,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run Macro Tracker
         run: python3 macro_tracker.py || python macro_tracker.py
 
-      - name: Commit & Push Dashboard
+      - name: Auto Commit Dashboard
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Auto-update Macro Dashboard"
