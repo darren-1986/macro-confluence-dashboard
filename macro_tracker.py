@@ -6,9 +6,10 @@ import io
 import base64
 import pandas as pd
 
+# Make sure the output folder exists
 os.makedirs("dashboard_build", exist_ok=True)
 
-# Safe fetch function
+# Helper: safe fetch from yfinance
 def safe_fetch(symbol, name):
     try:
         hist = yf.Ticker(symbol).history(period="30d")
@@ -19,7 +20,7 @@ def safe_fetch(symbol, name):
     except Exception as e:
         return pd.Series(), str(e)
 
-# Status class
+# Status class based on value
 def status_class(value):
     try:
         v = float(value)
@@ -39,7 +40,7 @@ def trend_arrow(series):
     if series.iloc[-1] < series.iloc[0]: return "↓"
     return "→"
 
-# Create base64 graph
+# Create base64 graph for embedding
 def create_graph(series, title, color):
     plt.figure(figsize=(4,1))
     if not series.empty:
@@ -57,8 +58,6 @@ def create_graph(series, title, color):
 symbols = [
     ("GC=F","Gold","#facc15"),
     ("AUDUSD=X","AUD/USD","#38bdf8"),
-    ("^TNX","US 10Y Yield","#f472b6"),
-    ("^VIX","VIX","#f87171")
 ]
 
 assets = {}
@@ -67,18 +66,27 @@ graphs = {}
 trends = {}
 errors = []
 
+# Fetch data safely
 for sym, name, color in symbols:
     series, err = safe_fetch(sym, name)
     if err: errors.append(err)
     histories[name] = series
-    assets[name] = series.iloc[-1] if not series.empty else "N/A"
+    assets[name] = series.iloc[-1] if not series.empty else 0  # placeholder 0
     graphs[name] = create_graph(series, name, color)
     trends[name] = trend_arrow(series)
 
-# Always build HTML, even if some data missing
+# Macro regime
+classes = {n: status_class(v) for n,v in assets.items()}
+bear_count = list(classes.values()).count("bear")
+bull_count = list(classes.values()).count("bull")
+if bear_count >= 2: macro_regime, regime_class = "RISK-OFF","bear"
+elif bull_count >= 2: macro_regime, regime_class = "RISK-ON","bull"
+else: macro_regime, regime_class = "TRANSITION","neutral"
+
+# HTML sections
 sections_html = ""
-for name in ["Gold","AUD/USD","US 10Y Yield","VIX"]:
-    val = assets.get(name,"N/A")
+for name in ["Gold","AUD/USD"]:
+    val = assets.get(name,0)
     cls = status_class(val)
     trend = trends.get(name,"→")
     graph = graphs.get(name,"")
@@ -90,17 +98,10 @@ for name in ["Gold","AUD/USD","US 10Y Yield","VIX"]:
     </div>
     """
 
-# Macro regime
-classes = {n: status_class(v) for n,v in assets.items()}
-bear_count = list(classes.values()).count("bear")
-bull_count = list(classes.values()).count("bull")
-if bear_count >= 3: macro_regime, regime_class = "RISK-OFF","bear"
-elif bull_count >= 3: macro_regime, regime_class = "RISK-ON","bull"
-else: macro_regime, regime_class = "TRANSITION","neutral"
-
 # Timestamp
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
+# Build full HTML
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -132,14 +133,17 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 {sections_html}
 
 <div class='timestamp'>Last updated: {now}</div>
+
+</body>
+</html>
 """
 
-# Always write HTML to prevent blank page
+# Write HTML no matter what
 os.makedirs("dashboard_build", exist_ok=True)
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-# Print errors to GitHub Actions log
+# Print errors for GitHub Actions logs
 if errors:
     print("⚠️ Some data fetch errors occurred:")
     for e in errors:
