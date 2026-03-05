@@ -1,10 +1,8 @@
 import os
 from datetime import datetime
 
-# Ensure output folder exists (folder already created in repo)
 os.makedirs("dashboard_build", exist_ok=True)
 
-# HTML content (placeholder, safe)
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -29,8 +27,7 @@ h1 {{ color:#38bdf8; }}
 </html>
 """
 
-# Write HTML
 with open("dashboard_build/index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("✅ Dashboard generated successfully!")
+print("Dashboard generated successfully!")
