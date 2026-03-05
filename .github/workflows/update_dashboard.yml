@@ -36,7 +36,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Add file
           git add dashboard_build/index.html
 
           # Commit only if changes exist
