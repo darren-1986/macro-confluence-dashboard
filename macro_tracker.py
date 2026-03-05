@@ -1,10 +1,9 @@
 import os
 from datetime import datetime
 
-# Step 2a: Ensure output folder exists
-os.makedirs("dashboard_build", exist_ok=True)
+# Create the docs folder
+os.makedirs("docs", exist_ok=True)
 
-# Step 2b: HTML content
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -19,14 +18,12 @@ h1 {{ color:#38bdf8; }}
 </style>
 </head>
 <body>
-<h1>Macro Dashboard (AUD/USD & Gold Placeholder)</h1>
-
+<h1>Macro Dashboard (AUD/USD & Gold)</h1>
 <div class="card">
 <p>Gold Price: 1950.50 USD</p>
 <p>AUD/USD: 0.6745</p>
 <p>Trend: Neutral</p>
 </div>
-
 <div class="timestamp">
 Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}
 </div>
@@ -34,8 +31,8 @@ Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}
 </html>
 """
 
-# Step 2c: Write the HTML file
-file_path = "dashboard_build/index.html"
+# Write HTML to docs/index.html
+file_path = "docs/index.html"
 with open(file_path, "w", encoding="utf-8") as f:
     f.write(html)
 
