@@ -2,11 +2,12 @@ import os
 from datetime import datetime
 import yfinance as yf
 
+# 1️⃣ Ensure output folder exists
 os.makedirs("dashboard_build", exist_ok=True)
 
 def safe_fetch(ticker):
     try:
-        data = yf.Ticker(ticker).history(period="1d")
+        data = yf.Ticker(ticker).history(period="5d", interval="1d")
         if data.empty:
             print(f"⚠ Warning: No data for {ticker}")
             return 0.0
@@ -15,14 +16,15 @@ def safe_fetch(ticker):
         print(f"❌ Failed to fetch {ticker}: {e}")
         return 0.0
 
-# Fetch data safely
+# 2️⃣ Fetch data safely
 audusd = safe_fetch("AUDUSD=X")
 gold = safe_fetch("GC=F")
 
+# 3️⃣ Trends placeholders
 trend_audusd = "↔"
 trend_gold = "↔"
 
-# Build HTML
+# 4️⃣ Build HTML dashboard
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -49,6 +51,7 @@ Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}
 </html>
 """
 
+# 5️⃣ Write HTML file
 with open("dashboard_build/index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
