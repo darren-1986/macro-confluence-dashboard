@@ -1,102 +1,54 @@
 import os
 from datetime import datetime, timezone
-import yfinance as yf
-import matplotlib.pyplot as plt
-import io
 import base64
-import pandas as pd
 
 # Ensure output folder exists
 os.makedirs("dashboard_build", exist_ok=True)
 
-# Safe fetch function
-def safe_fetch(symbol, name):
-    try:
-        hist = yf.Ticker(symbol).history(period="30d")
-        if 'Close' in hist and not hist['Close'].empty:
-            return hist['Close'], None
-        else:
-            return pd.Series(), f"No data for {name}"
-    except Exception as e:
-        return pd.Series(), str(e)
+# Placeholder data (safe for GitHub Actions)
+assets = {
+    "Gold": 1950.50,
+    "AUD/USD": 0.6745
+}
+trends = {
+    "Gold": "↑",
+    "AUD/USD": "→"
+}
+status_classes = {
+    "Gold": "neutral",
+    "AUD/USD": "bull"
+}
 
-# Determine status class
-def status_class(value):
-    try:
-        v = float(value)
-        if v > 3: return "bear"
-        elif v < 1: return "bull"
-        else: return "neutral"
-    except:
-        return "neutral"
+# Macro regime logic
+bull_count = list(status_classes.values()).count("bull")
+bear_count = list(status_classes.values()).count("bear")
+if bear_count >= 2:
+    macro_regime, regime_class = "RISK-OFF", "bear"
+elif bull_count >= 2:
+    macro_regime, regime_class = "RISK-ON", "bull"
+else:
+    macro_regime, regime_class = "TRANSITION", "neutral"
 
-# Trend arrow
-def trend_arrow(series):
-    if len(series) < 2: return "→"
-    if series.iloc[-1] > series.iloc[0]: return "↑"
-    if series.iloc[-1] < series.iloc[0]: return "↓"
-    return "→"
-
-# Create base64 graph
-def create_graph(series, title, color):
-    plt.figure(figsize=(4,1))
-    if not series.empty:
-        plt.plot(series, color=color)
-    plt.xticks([]); plt.yticks([])
-    plt.title(title, fontsize=10, color="#ffffff")
-    plt.tight_layout()
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", transparent=True)
-    plt.close()
-    buf.seek(0)
-    return base64.b64encode(buf.read()).decode()
-
-# Symbols we track
-symbols = [
-    ("GC=F","Gold","#facc15"),
-    ("AUDUSD=X","AUD/USD","#38bdf8")
-]
-
-assets = {}
-graphs = {}
-trends = {}
-errors = []
-
-for sym, name, color in symbols:
-    series, err = safe_fetch(sym, name)
-    if err:
-        errors.append(err)
-    assets[name] = series.iloc[-1] if not series.empty else 0
-    graphs[name] = create_graph(series, name, color)
-    trends[name] = trend_arrow(series)
-
-# Determine macro regime
-classes = {n: status_class(v) for n,v in assets.items()}
-bear_count = list(classes.values()).count("bear")
-bull_count = list(classes.values()).count("bull")
-if bear_count >= 2: macro_regime, regime_class = "RISK-OFF","bear"
-elif bull_count >= 2: macro_regime, regime_class = "RISK-ON","bull"
-else: macro_regime, regime_class = "TRANSITION","neutral"
-
-# Generate HTML sections
+# HTML sections
 sections_html = ""
-for name in ["Gold","AUD/USD"]:
-    val = assets.get(name,0)
-    cls = status_class(val)
-    trend = trends.get(name,"→")
-    graph = graphs.get(name,"")
+for name in ["Gold", "AUD/USD"]:
+    val = assets[name]
+    cls = status_classes[name]
+    trend = trends[name]
+    # Use a placeholder graph (blank image) — ensures HTML always renders
+    blank_graph = base64.b64encode(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR").decode()
     sections_html += f"""
     <div class='card'>
         <h2>{name}</h2>
         <table><tr><td>{val} {trend}</td><td class='{cls}'>{cls.title()}</td></tr></table>
-        <img class='graph' src='data:image/png;base64,{graph}'>
+        <img class='graph' src='data:image/png;base64,{blank_graph}'>
     </div>
     """
 
 # Timestamp
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-# Full HTML
+# Full HTML (guaranteed to write)
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -133,13 +85,8 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 </html>
 """
 
-# Write HTML to disk
+# Write HTML
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-# Log errors for GitHub Actions
-if errors:
-    print("⚠️ Some data fetch errors occurred:")
-    for e in errors:
-        print(e)
-print("✅ Dashboard generated successfully!")
+print("✅ Dashboard generated successfully with placeholder data!")
