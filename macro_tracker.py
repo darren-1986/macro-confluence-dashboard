@@ -1,8 +1,10 @@
 import os
 from datetime import datetime
 
+# Ensure output folder exists (folder already created in repo)
 os.makedirs("dashboard_build", exist_ok=True)
 
+# HTML content (placeholder, safe)
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -17,7 +19,7 @@ h1 {{ color:#38bdf8; }}
 </style>
 </head>
 <body>
-<h1>Macro Dashboard (Placeholder)</h1>
+<h1>Macro Dashboard (AUD/USD & Gold Placeholder)</h1>
 <div class='card'>
 <p>Gold: 1950.50 ↑ (neutral)</p>
 <p>AUD/USD: 0.6745 → (bull)</p>
@@ -27,6 +29,7 @@ h1 {{ color:#38bdf8; }}
 </html>
 """
 
+# Write HTML
 with open("dashboard_build/index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
