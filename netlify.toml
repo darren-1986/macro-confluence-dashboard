@@ -1,2 +1,7 @@
 [build]
   publish = "dashboard_build"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
