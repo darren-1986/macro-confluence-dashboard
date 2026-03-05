@@ -1,6 +1,6 @@
 name: Auto Update Macro Dashboard
 
-# Trigger workflow every 4 hours, and allow manual trigger
+# Trigger every 4 hours and allow manual trigger
 on:
   schedule:
     - cron: "0 */4 * * *"  # every 4 hours
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -30,7 +30,7 @@ jobs:
       - name: Run Macro Tracker
         run: python macro_tracker.py
 
-      # 5️⃣ Commit & Push updated dashboard safely
+      # 5️⃣ Commit & push updated dashboard safely
       - name: Commit & Push Dashboard
         run: |
           git config user.name "github-actions[bot]"
@@ -38,10 +38,9 @@ jobs:
 
           git add dashboard_build/index.html
 
-          # Commit only if changes exist
+          # Only commit if there are changes to prevent exit code 128
           if ! git diff --cached --quiet; then
               git commit -m "Auto-update Macro Dashboard"
               git push
           else
               echo "No changes to commit"
-          fi
