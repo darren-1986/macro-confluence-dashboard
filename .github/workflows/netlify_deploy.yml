@@ -14,29 +14,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Python
+      # 2️⃣ Debug: show repo structure
+      - name: Debug repo structure
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Files in repo:"
+          ls -R
+
+      # 3️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3️⃣ Install dependencies
+      # 4️⃣ Install dependencies
       - name: Install dependencies
         run: pip install yfinance pandas
 
-      # 4️⃣ Run Macro Tracker and log errors
+      # 5️⃣ Run Macro Tracker with error logging
       - name: Run Macro Tracker
         run: |
           echo "Running macro_tracker.py..."
-          python3 macro_tracker.py || python macro_tracker.py || { echo 'Python script failed!'; exit 1; }
+          python3 macro_tracker.py || python macro_tracker.py || { echo '❌ Python script failed!'; exit 1; }
 
-      # 5️⃣ Debug: list dashboard_build folder
+      # 6️⃣ Debug: check dashboard_build folder
       - name: Verify dashboard_build
         run: |
           echo "Checking dashboard_build contents..."
-          ls -R dashboard_build || { echo 'dashboard_build missing!'; exit 1; }
+          ls -R dashboard_build || { echo '❌ dashboard_build missing!'; exit 1; }
 
-      # 6️⃣ Deploy to Netlify (only if folder exists)
+      # 7️⃣ Deploy to Netlify (only if dashboard exists)
       - name: Deploy to Netlify
         if: ${{ success() }}
         uses: nwtgck/actions-netlify@v1.2.0
