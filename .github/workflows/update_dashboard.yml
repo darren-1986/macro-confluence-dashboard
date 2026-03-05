@@ -2,15 +2,14 @@ name: Auto Update Macro Dashboard
 
 on:
   schedule:
-    - cron: "0 */4 * * *"  # every 4 hours
+    - cron: "0 */4 * * *"
   workflow_dispatch:
 
 jobs:
   update-dashboard:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Run Macro Tracker
