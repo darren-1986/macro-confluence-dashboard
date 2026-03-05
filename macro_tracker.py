@@ -3,9 +3,10 @@ from datetime import datetime
 import csv
 import requests
 
+# --- ensure output folder exists ---
 os.makedirs("dashboard_build", exist_ok=True)
 
-# --- 1️⃣ AUD/USD fetch ---
+# --- 1️⃣ AUD/USD fetch (free, keyless) ---
 def fetch_audusd():
     try:
         r = requests.get("https://api.exchangerate.host/latest?base=AUD&symbols=USD")
@@ -20,7 +21,7 @@ def fetch_audusd():
         print(f"❌ Failed to fetch AUD/USD: {e}")
         return [0.0]*5, 0.0
 
-# --- 2️⃣ Gold fetch from CSV fallback ---
+# --- 2️⃣ Gold fetch from local CSV ---
 def fetch_gold():
     prices = []
     try:
@@ -30,7 +31,7 @@ def fetch_gold():
                 prices.append(float(row[1]))
         if not prices:
             return [0.0]*5, 0.0
-        return prices[-5:], prices[-1]  # last 5 prices
+        return prices[-5:], prices[-1]
     except Exception as e:
         print(f"❌ Failed to fetch Gold from CSV: {e}")
         return [0.0]*5, 0.0
