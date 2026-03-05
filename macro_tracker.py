@@ -10,19 +10,25 @@ html = f"""
 <meta charset='UTF-8'>
 <title>Macro Dashboard</title>
 <style>
-body {{ font-family: Arial,sans-serif; background:#0f172a; color:#e5e7eb; padding:40px; }}
+body {{ font-family: Arial, sans-serif; background:#0f172a; color:#e5e7eb; padding:40px; }}
 h1 {{ color:#38bdf8; }}
 .card {{ background:#020617; padding:20px; border-radius:8px; margin-bottom:30px; }}
 .timestamp {{ margin-top:40px; font-size:0.9rem; color:#94a3b8; }}
 </style>
 </head>
 <body>
-<h1>Macro Dashboard (AUD/USD & Gold Placeholder)</h1>
-<div class='card'>
-<p>Gold: 1950.50 ↑ (neutral)</p>
-<p>AUD/USD: 0.6745 → (bull)</p>
+<h1>Macro Dashboard (AUD/USD & Gold)</h1>
+
+<div class="card">
+<h2>Live Data Placeholder</h2>
+<p>Gold Price: 1950.50 USD</p>
+<p>AUD/USD: 0.6745</p>
+<p>Trend: Neutral</p>
 </div>
-<div class='timestamp'>Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}</div>
+
+<div class="timestamp">
+Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}
+</div>
 </body>
 </html>
 """
@@ -30,4 +36,4 @@ h1 {{ color:#38bdf8; }}
 with open("dashboard_build/index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard generated successfully!")
+print("✅ Dashboard generated with placeholder data!")
