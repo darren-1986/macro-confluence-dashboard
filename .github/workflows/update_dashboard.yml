@@ -24,10 +24,10 @@ jobs:
       - name: Run Macro Tracker
         run: python3 macro_tracker.py || python macro_tracker.py
 
-      - name: Deploy to Pages
+      - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages       # <-- this branch will host the site
-          folder: docs           # <-- the folder containing index.html
+          branch: gh-pages       # this branch will host the site
+          folder: dashboard_build # folder containing index.html
           commit-message: "Auto-update Macro Dashboard"
           clean: true
