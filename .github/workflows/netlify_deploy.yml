@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -24,15 +24,24 @@ jobs:
       - name: Install dependencies
         run: pip install yfinance pandas
 
-      # 4️⃣ Generate dashboard
+      # 4️⃣ Run Macro Tracker and log errors
       - name: Run Macro Tracker
-        run: python3 macro_tracker.py || python macro_tracker.py
+        run: |
+          echo "Running macro_tracker.py..."
+          python3 macro_tracker.py || python macro_tracker.py || { echo 'Python script failed!'; exit 1; }
 
-      # 5️⃣ Deploy to Netlify
+      # 5️⃣ Debug: list dashboard_build folder
+      - name: Verify dashboard_build
+        run: |
+          echo "Checking dashboard_build contents..."
+          ls -R dashboard_build || { echo 'dashboard_build missing!'; exit 1; }
+
+      # 6️⃣ Deploy to Netlify (only if folder exists)
       - name: Deploy to Netlify
+        if: ${{ success() }}
         uses: nwtgck/actions-netlify@v1.2.0
         with:
-          publish-dir: dashboard_build        # folder with index.html
+          publish-dir: dashboard_build
           production-branch: main
           github-token: ${{ secrets.GITHUB_TOKEN }}
           netlify-auth-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
