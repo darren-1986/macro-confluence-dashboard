@@ -2,7 +2,7 @@ name: Auto Update Macro Dashboard
 
 on:
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "0 */4 * * *"  # every 4 hours
   workflow_dispatch:
 
 jobs:
@@ -14,10 +14,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Macro Tracker
+        # run the Python script; python3 on GH runners is safe
         run: python3 macro_tracker.py || python macro_tracker.py
 
-      - name: Upload Dashboard Artifact
-        uses: actions/upload-artifact@v3
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v4
         with:
           name: macro-dashboard
           path: dashboard_build/index.html
