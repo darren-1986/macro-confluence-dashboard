@@ -10,47 +10,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repo
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Debug repo
-      - name: Debug repo structure
-        run: |
-          echo "Current directory:"
-          pwd
-          echo "Files in repo:"
-          ls -R
-
-      # 3️⃣ Set up Python
+      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 4️⃣ Install dependencies
-      - name: Install dependencies
+      # 3️⃣ Install dependencies
+      - name: Install Python dependencies
         run: pip install yfinance pandas
 
-      # 5️⃣ Run Macro Tracker
+      # 4️⃣ Run Macro Tracker
       - name: Run Macro Tracker
         run: |
           echo "Running macro_tracker.py..."
           python3 macro_tracker.py || python macro_tracker.py || { echo '❌ Python script failed!'; exit 1; }
 
-      # 6️⃣ Debug: verify dashboard_build folder
+      # 5️⃣ Verify dashboard_build folder
       - name: Verify dashboard_build
         run: |
-          echo "Checking dashboard_build contents..."
+          echo "Listing dashboard_build contents..."
           ls -R dashboard_build || { echo '❌ dashboard_build missing!'; exit 1; }
 
-      # 7️⃣ Deploy to Netlify v2
+      # 6️⃣ Install Netlify CLI
+      - name: Install Netlify CLI
+        run: npm install -g netlify-cli
+
+      # 7️⃣ Deploy to Netlify
       - name: Deploy to Netlify
-        if: ${{ success() }}
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: dashboard_build
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          netlify-token: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          site-id: ${{ secrets.NETLIFY_SITE_ID }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          echo "Deploying dashboard_build to Netlify..."
+          netlify deploy \
+            --dir=dashboard_build \
+            --prod \
+            --site=$NETLIFY_SITE_ID \
+            --auth=$NETLIFY_AUTH_TOKEN
