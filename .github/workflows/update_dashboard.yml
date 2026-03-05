@@ -6,20 +6,28 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-dashboard:
+  deploy-dashboard:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install yfinance pandas
 
       - name: Run Macro Tracker
         run: python3 macro_tracker.py || python macro_tracker.py
 
-      - name: Commit & Push docs
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html
-          git commit -m "Auto-update Macro Dashboard" || echo "No changes"
-          git push
+      - name: Deploy to Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages       # <-- this branch will host the site
+          folder: docs           # <-- the folder containing index.html
+          commit-message: "Auto-update Macro Dashboard"
+          clean: true
