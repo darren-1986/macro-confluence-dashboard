@@ -27,7 +27,7 @@ h1 {{ color:#38bdf8; }}
 </html>
 """
 
-with open("dashboard_build/index.html","w",encoding="utf-8") as f:
+with open("dashboard_build/index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
 print("✅ Dashboard generated successfully!")
