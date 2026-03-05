@@ -1,93 +1,99 @@
 import os
 from datetime import datetime, timezone
 import yfinance as yf
+import matplotlib.pyplot as plt
+import io
+import base64
+import pandas as pd
 
-# -----------------------------
-# Optional FRED
-# -----------------------------
-try:
-    from fredapi import Fred
-    FRED_AVAILABLE = True
-    FRED_API_KEY = os.environ.get("FRED_API_KEY")
-    if not FRED_API_KEY:
-        print("FRED_API_KEY not set, macro indicators will be N/A")
-        FRED_AVAILABLE = False
-except ImportError:
-    print("fredapi not installed, macro indicators will be N/A")
-    FRED_AVAILABLE = False
-
-# -----------------------------
-# Ensure build folder exists
-# -----------------------------
+# Create build folder
 os.makedirs("dashboard_build", exist_ok=True)
 
-# -----------------------------
-# Helper: status_class
-# -----------------------------
+# Convert numeric or textual value to status class
 def status_class(value):
     try:
-        # Try numeric
         num = float(str(value).replace("%",""))
         if num > 3: return "bear"
         elif num < 1: return "bull"
         else: return "neutral"
     except:
         s = str(value).lower()
-        if any(k in s for k in ["bull","rising","expansion","easing","cooling","improving"]):
+        if any(k in s for k in ["bull","rising"]):
             return "bull"
-        if any(k in s for k in ["bear","falling","inverted","restrictive","contraction","sticky","elevated","high","stress"]):
+        if any(k in s for k in ["bear","falling"]):
             return "bear"
         return "neutral"
 
-# -----------------------------
-# Fetch assets (Yahoo Finance)
-# -----------------------------
+# Trend arrow based on last vs first value
+def trend_arrow(series):
+    if len(series) < 2: return "→"
+    if series.iloc[-1] > series.iloc[0]: return "↑"
+    if series.iloc[-1] < series.iloc[0]: return "↓"
+    return "→"
+
+# Function to create base64 graph
+def create_graph(data, title, color):
+    plt.figure(figsize=(4,1))
+    plt.plot(data, color=color)
+    plt.xticks([])
+    plt.yticks([])
+    plt.title(title, fontsize=10, color="#ffffff")
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", transparent=True)
+    plt.close()
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode("utf-8")
+
+# Fetch live market data (last 30 days for graph)
+symbols = [
+    ("GC=F","Gold","#facc15"),
+    ("AUDUSD=X","AUD/USD","#38bdf8"),
+    ("^TNX","US 10Y Yield","#f472b6"),
+    ("^VIX","VIX","#f87171")
+]
+
 assets = {}
-for symbol,name in [("GC=F","Gold"),("AUDUSD=X","AUD/USD"),("^TNX","US 10Y Yield"),("^VIX","VIX")]:
+histories = {}
+graphs = {}
+trends = {}
+
+for symbol, name, color in symbols:
     try:
-        hist = yf.Ticker(symbol).history(period="1d")
+        hist = yf.Ticker(symbol).history(period="30d")
+        histories[name] = hist['Close']
         assets[name] = hist['Close'].iloc[-1]
+        graphs[name] = create_graph(hist['Close'], name, color)
+        trends[name] = trend_arrow(hist['Close'])
         if name=="US 10Y Yield":
             assets[name] /= 100
-    except Exception as e:
-        print(f"Failed to fetch {name}: {e}")
+    except:
         assets[name] = "N/A"
+        histories[name] = pd.Series()
+        graphs[name] = ""
+        trends[name] = "→"
 
-# -----------------------------
-# Fetch macro indicators from FRED
-# -----------------------------
-macro_data = {}
+# Calculate correlation between Gold and AUD/USD
+try:
+    combined = pd.concat([histories["Gold"], histories["AUD/USD"]], axis=1)
+    combined.columns = ["Gold", "AUDUSD"]
+    correlation = combined["Gold"].corr(combined["AUDUSD"])
+    correlation_text = f"{correlation:.2f}"
+    if correlation > 0: correlation_class = "bull"
+    elif correlation < 0: correlation_class = "bear"
+    else: correlation_class = "neutral"
+except:
+    correlation_text = "N/A"
+    correlation_class = "neutral"
 
-if FRED_AVAILABLE:
-    try:
-        fred = Fred(api_key=FRED_API_KEY)
-        macro_data["Inflation"] = {"CPI": round(fred.get_series("CPIAUCNS")[-1],2)}
-        macro_data["Growth"] = {"Unemployment": round(fred.get_series("UNRATE")[-1],2)}
-        macro_data["Liquidity"] = {
-            "Fed Balance Sheet": round(fred.get_series("WALCL")[-1],2),
-            "Reverse Repo": round(fred.get_series("RRPONTSYD")[-1],2),
-            "Treasury General Account": round(fred.get_series("TGA")[-1],2)
-        }
-    except Exception as e:
-        print(f"FRED fetch failed: {e}")
-        macro_data["Inflation"] = {"CPI":"N/A"}
-        macro_data["Growth"] = {"Unemployment":"N/A"}
-        macro_data["Liquidity"] = {"Fed Balance Sheet":"N/A","Reverse Repo":"N/A","Treasury General Account":"N/A"}
-else:
-    macro_data["Inflation"] = {"CPI":"N/A"}
-    macro_data["Growth"] = {"Unemployment":"N/A"}
-    macro_data["Liquidity"] = {"Fed Balance Sheet":"N/A","Reverse Repo":"N/A","Treasury General Account":"N/A"}
-
-# Risk Sentiment & Rates from Yahoo assets
-macro_data["Risk Sentiment"] = {"VIX": assets.get("VIX","N/A")}
-macro_data["Rates"] = {"US 10Y Yield": assets.get("US 10Y Yield","N/A")}
-
-# -----------------------------
 # Determine macro regime
-# -----------------------------
-all_classes = [status_class(v) for cat in macro_data.values() for v in cat.values()]
-bear_count = all_classes.count("bear")
-bull_count = all_classes.count("bull")
+vix_class = status_class(assets.get("VIX","N/A"))
+aud_class = status_class(assets.get("AUD/USD","N/A"))
+gold_class = status_class(assets.get("Gold","N/A"))
+us10y_class = status_class(assets.get("US 10Y Yield","N/A"))
+
+bear_count = [vix_class, aud_class, gold_class, us10y_class].count("bear")
+bull_count = [vix_class, aud_class, gold_class, us10y_class].count("bull")
 
 if bear_count >= 3:
     macro_regime = "RISK-OFF"
@@ -99,22 +105,29 @@ else:
     macro_regime = "TRANSITION"
     regime_class = "neutral"
 
-# -----------------------------
 # Asset biases
-# -----------------------------
 gold_bias = "Bullish" if macro_regime=="RISK-OFF" else "Bearish" if macro_regime=="RISK-ON" else "Neutral"
-gold_class = status_class(gold_bias)
-
 aud_bias = "Bullish" if macro_regime=="RISK-ON" else "Bearish" if macro_regime=="RISK-OFF" else "Neutral"
-aud_class = status_class(aud_bias)
 
-# -----------------------------
-# Build HTML sections
-# -----------------------------
+# Build HTML for each asset
 sections_html = ""
-for category, indicators in macro_data.items():
-    rows = "".join([f"<tr><td>{k}</td><td class='{status_class(v)}'>{v}</td></tr>" for k,v in indicators.items()])
-    sections_html += f"<div class='card'><h2>{category}</h2><table>{rows}</table></div>"
+for name in ["Gold","AUD/USD","US 10Y Yield","VIX"]:
+    value = assets.get(name,"N/A")
+    cls = status_class(value)
+    trend = trends.get(name,"→")
+    graph = graphs.get(name,"")
+    sections_html += f"""
+    <div class='card'>
+        <h2>{name}</h2>
+        <table>
+            <tr>
+                <td>{value} {trend}</td>
+                <td class='{cls}'>{cls.title()}</td>
+            </tr>
+        </table>
+        <img class='graph' src='data:image/png;base64,{graph}'>
+    </div>
+    """
 
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -123,7 +136,7 @@ html = f"""
 <html lang='en'>
 <head>
 <meta charset='UTF-8'>
-<title>Macro Confluence Dashboard</title>
+<title>Macro Dashboard</title>
 <style>
 body {{ font-family: Arial,sans-serif; background:#0f172a; color:#e5e7eb; padding:40px; }}
 h1 {{ color:#38bdf8; }}
@@ -135,11 +148,12 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 .neutral {{ color:#facc15; }}
 .bear {{ color:#f87171; font-weight:bold; }}
 .timestamp {{ margin-top:40px; font-size:0.9rem; color:#94a3b8; }}
+.graph {{ display:block; margin-top:5px; }}
 </style>
 </head>
 <body>
 
-<h1>Macro Confluence Dashboard</h1>
+<h1>Macro Dashboard (AUD/USD & Gold Focus)</h1>
 
 <div class='card'>
 <h2>Macro Regime</h2>
@@ -149,25 +163,16 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 {sections_html}
 
 <div class='card'>
-<h2>Assets</h2>
+<h2>Assets Correlation</h2>
 <table>
-<tr><td>Gold</td><td class='{gold_class}'>{gold_bias} ({assets.get("Gold","N/A")})</td></tr>
-<tr><td>AUD/USD</td><td class='{aud_class}'>{aud_bias} ({assets.get("AUD/USD","N/A")})</td></tr>
+<tr>
+<td>Gold ↔ AUD/USD (30d)</td>
+<td class='{correlation_class}'>{correlation_text}</td>
+</tr>
 </table>
 </div>
 
 <div class='timestamp'>Last updated: {now}</div>
-
-<div class='card'>
-<h2>Data Sources</h2>
-<ul>
-<li>Yahoo Finance (Gold, AUD/USD, US 10Y Yield, VIX)</li>
-<li>FRED (CPI, Unemployment, Fed Balance Sheet, Reverse Repo, TGA)</li>
-<li>US Treasury</li>
-<li>Bureau of Labor Statistics (BLS)</li>
-</ul>
-</div>
-
 </body>
 </html>
 """
@@ -175,4 +180,4 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-print("Dashboard generated successfully in dashboard_build/index.html")
+print("Fully visual dashboard with trend arrows and sparklines generated successfully!")
