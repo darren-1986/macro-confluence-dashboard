@@ -6,10 +6,10 @@ import io
 import base64
 import pandas as pd
 
-# Make sure the output folder exists
+# Ensure output folder exists
 os.makedirs("dashboard_build", exist_ok=True)
 
-# Helper: safe fetch from yfinance
+# Safe fetch function
 def safe_fetch(symbol, name):
     try:
         hist = yf.Ticker(symbol).history(period="30d")
@@ -20,7 +20,7 @@ def safe_fetch(symbol, name):
     except Exception as e:
         return pd.Series(), str(e)
 
-# Status class based on value
+# Determine status class
 def status_class(value):
     try:
         v = float(value)
@@ -28,9 +28,6 @@ def status_class(value):
         elif v < 1: return "bull"
         else: return "neutral"
     except:
-        s = str(value).lower()
-        if "bull" in s: return "bull"
-        if "bear" in s: return "bear"
         return "neutral"
 
 # Trend arrow
@@ -40,7 +37,7 @@ def trend_arrow(series):
     if series.iloc[-1] < series.iloc[0]: return "↓"
     return "→"
 
-# Create base64 graph for embedding
+# Create base64 graph
 def create_graph(series, title, color):
     plt.figure(figsize=(4,1))
     if not series.empty:
@@ -57,25 +54,23 @@ def create_graph(series, title, color):
 # Symbols we track
 symbols = [
     ("GC=F","Gold","#facc15"),
-    ("AUDUSD=X","AUD/USD","#38bdf8"),
+    ("AUDUSD=X","AUD/USD","#38bdf8")
 ]
 
 assets = {}
-histories = {}
 graphs = {}
 trends = {}
 errors = []
 
-# Fetch data safely
 for sym, name, color in symbols:
     series, err = safe_fetch(sym, name)
-    if err: errors.append(err)
-    histories[name] = series
-    assets[name] = series.iloc[-1] if not series.empty else 0  # placeholder 0
+    if err:
+        errors.append(err)
+    assets[name] = series.iloc[-1] if not series.empty else 0
     graphs[name] = create_graph(series, name, color)
     trends[name] = trend_arrow(series)
 
-# Macro regime
+# Determine macro regime
 classes = {n: status_class(v) for n,v in assets.items()}
 bear_count = list(classes.values()).count("bear")
 bull_count = list(classes.values()).count("bull")
@@ -83,7 +78,7 @@ if bear_count >= 2: macro_regime, regime_class = "RISK-OFF","bear"
 elif bull_count >= 2: macro_regime, regime_class = "RISK-ON","bull"
 else: macro_regime, regime_class = "TRANSITION","neutral"
 
-# HTML sections
+# Generate HTML sections
 sections_html = ""
 for name in ["Gold","AUD/USD"]:
     val = assets.get(name,0)
@@ -101,7 +96,7 @@ for name in ["Gold","AUD/USD"]:
 # Timestamp
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-# Build full HTML
+# Full HTML
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -138,12 +133,11 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 </html>
 """
 
-# Write HTML no matter what
-os.makedirs("dashboard_build", exist_ok=True)
+# Write HTML to disk
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-# Print errors for GitHub Actions logs
+# Log errors for GitHub Actions
 if errors:
     print("⚠️ Some data fetch errors occurred:")
     for e in errors:
