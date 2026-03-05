@@ -2,19 +2,21 @@ name: Auto Update Macro Dashboard
 
 on:
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "0 */4 * * *"  # runs every 4 hours
   workflow_dispatch:
 
 jobs:
   build-dashboard:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Run Macro Tracker
         run: python3 macro_tracker.py || python macro_tracker.py
 
-      - name: Upload artifact
+      - name: Upload dashboard artifact
         uses: actions/upload-artifact@v4
         with:
           name: macro-dashboard
