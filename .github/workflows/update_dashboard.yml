@@ -1,9 +1,8 @@
 name: Auto Update Macro Dashboard
 
-# Trigger every 4 hours and allow manual trigger
 on:
   schedule:
-    - cron: "0 */4 * * *"  # every 4 hours
+    - cron: "0 */4 * * *" # every 4 hours
   workflow_dispatch:
 
 jobs:
@@ -11,26 +10,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Set up Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: |
           pip install yfinance pandas matplotlib
 
-      # 4️⃣ Run the Macro Tracker script
       - name: Run Macro Tracker
         run: python macro_tracker.py
 
-      # 5️⃣ Commit & push updated dashboard safely
       - name: Commit & Push Dashboard
         run: |
           git config user.name "github-actions[bot]"
@@ -38,7 +32,6 @@ jobs:
 
           git add dashboard_build/index.html
 
-          # Only commit if there are changes to prevent exit code 128
           if ! git diff --cached --quiet; then
               git commit -m "Auto-update Macro Dashboard"
               git push
