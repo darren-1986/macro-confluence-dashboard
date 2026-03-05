@@ -1,11 +1,10 @@
 import os
 from datetime import datetime, timezone
-import base64
 
 # Ensure output folder exists
 os.makedirs("dashboard_build", exist_ok=True)
 
-# Placeholder data (safe for GitHub Actions)
+# Placeholder data
 assets = {
     "Gold": 1950.50,
     "AUD/USD": 0.6745
@@ -19,7 +18,7 @@ status_classes = {
     "AUD/USD": "bull"
 }
 
-# Macro regime logic
+# Macro regime
 bull_count = list(status_classes.values()).count("bull")
 bear_count = list(status_classes.values()).count("bear")
 if bear_count >= 2:
@@ -29,26 +28,22 @@ elif bull_count >= 2:
 else:
     macro_regime, regime_class = "TRANSITION", "neutral"
 
-# HTML sections
+# HTML content
 sections_html = ""
-for name in ["Gold", "AUD/USD"]:
+for name in ["Gold","AUD/USD"]:
     val = assets[name]
     cls = status_classes[name]
     trend = trends[name]
-    # Use a placeholder graph (blank image) — ensures HTML always renders
-    blank_graph = base64.b64encode(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR").decode()
     sections_html += f"""
     <div class='card'>
         <h2>{name}</h2>
         <table><tr><td>{val} {trend}</td><td class='{cls}'>{cls.title()}</td></tr></table>
-        <img class='graph' src='data:image/png;base64,{blank_graph}'>
+        <div style="width:100%; height:50px; background:#1e293b; border-radius:4px; margin-top:5px;"></div>
     </div>
     """
 
-# Timestamp
 now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
-# Full HTML (guaranteed to write)
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -66,7 +61,6 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 .neutral {{ color:#facc15; }}
 .bear {{ color:#f87171; font-weight:bold; }}
 .timestamp {{ margin-top:40px; font-size:0.9rem; color:#94a3b8; }}
-.graph {{ display:block; margin-top:5px; }}
 </style>
 </head>
 <body>
@@ -85,8 +79,7 @@ td {{ padding:8px; border-bottom:1px solid #1e293b; }}
 </html>
 """
 
-# Write HTML
 with open("dashboard_build/index.html","w",encoding="utf-8") as f:
     f.write(html)
 
-print("✅ Dashboard generated successfully with placeholder data!")
+print("✅ Dashboard generated successfully with placeholders!")
