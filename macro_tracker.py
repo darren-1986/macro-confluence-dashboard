@@ -2,18 +2,14 @@ import os
 from datetime import datetime
 import yfinance as yf
 
-# Ensure output folder exists
 os.makedirs("dashboard_build", exist_ok=True)
 
-# Fetch live data
 audusd = yf.Ticker("AUDUSD=X").history(period="1d")['Close'][-1]
 gold = yf.Ticker("GC=F").history(period="1d")['Close'][-1]
 
-# Placeholder trend arrows
 trend_audusd = "↔"
 trend_gold = "↔"
 
-# Build HTML
 html = f"""
 <!DOCTYPE html>
 <html lang='en'>
@@ -40,9 +36,7 @@ Last updated: {datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}
 </html>
 """
 
-# Write HTML to dashboard_build/index.html
-file_path = "dashboard_build/index.html"
-with open(file_path, "w", encoding="utf-8") as f:
+with open("dashboard_build/index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print(f"✅ Dashboard updated at {file_path}!")
+print("✅ Dashboard generated at dashboard_build/index.html")
